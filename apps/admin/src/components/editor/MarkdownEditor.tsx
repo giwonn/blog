@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState, useEffect } from "react";
-import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import CodeMirror from "@uiw/react-codemirror";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { EditorView, keymap } from "@codemirror/view";
@@ -65,7 +65,7 @@ interface MarkdownEditorProps {
 
 export function MarkdownEditor({ content = "", onChange }: MarkdownEditorProps) {
   const [value, setValue] = useState(content);
-  const editorRef = useRef<ReactCodeMirrorRef>(null);
+  const [editorView, setEditorView] = useState<EditorView | null>(null);
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const syncingRef = useRef(false);
@@ -78,13 +78,9 @@ export function MarkdownEditor({ content = "", onChange }: MarkdownEditorProps) 
     [onChange]
   );
 
-  const getEditorView = (): EditorView | null => {
-    return editorRef.current?.view ?? null;
-  };
-
   const insertImageMarkdown = useCallback(
     async (file: File) => {
-      const view = getEditorView();
+      const view = editorView;
       if (!view) return;
 
       const placeholderText = "![업로드 중...]()";
@@ -126,7 +122,7 @@ export function MarkdownEditor({ content = "", onChange }: MarkdownEditorProps) 
         }
       }
     },
-    [handleChange]
+    [editorView, handleChange]
   );
 
   const handleImageUploadClick = useCallback(() => {
@@ -180,7 +176,7 @@ export function MarkdownEditor({ content = "", onChange }: MarkdownEditorProps) 
       if (syncingRef.current) return;
       syncingRef.current = true;
 
-      const view = editorRef.current?.view;
+      const view = editorView;
       if (!view) { syncingRef.current = false; return; }
 
       const maxScroll = editorScroller.scrollHeight - editorScroller.clientHeight;
@@ -238,7 +234,7 @@ export function MarkdownEditor({ content = "", onChange }: MarkdownEditorProps) 
 
     editorScroller.addEventListener("scroll", handleEditorScroll);
     return () => editorScroller.removeEventListener("scroll", handleEditorScroll);
-  });
+  }, [editorView]);
 
   const eventHandlers = EditorView.domEventHandlers({
     paste: (event) => handlePaste(event),
@@ -247,12 +243,12 @@ export function MarkdownEditor({ content = "", onChange }: MarkdownEditorProps) 
 
   return (
     <div className="border border-gray-300 rounded-lg overflow-hidden bg-white flex flex-col flex-1 min-h-0">
-      <Toolbar editorView={getEditorView()} onImageUpload={handleImageUploadClick} />
+      <Toolbar editorView={editorView} onImageUpload={handleImageUploadClick} />
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto border-r border-gray-200 max-lg:border-r-0" ref={editorScrollRef}>
           <CodeMirror
-            ref={editorRef}
+            onCreateEditor={(view) => setEditorView(view)}
             value={value}
             onChange={handleChange}
             extensions={[
