@@ -10,5 +10,5 @@ dist/
 !.env.example
 !.env.test
 
-# Drizzle-kit introspect staging (schema.ts is the real output and IS committed)
-drizzle/meta/
+# Drizzle-kit introspect staging (schema.ts is copied to src/db/ and IS committed)
+packages/core/drizzle/

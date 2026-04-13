@@ -20,8 +20,10 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@types/bun": "latest",
+    "@types/pg": "^8.20.0",
     "drizzle-kit": "latest",
-    "typescript": "^5.6.0",
-    "@types/bun": "latest"
+    "pg": "^8.20.0",
+    "typescript": "^5.6.0"
   }
 }
