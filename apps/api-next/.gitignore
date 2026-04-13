@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.turbo/
+*.log
+
+# Env files
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.test
+
+# Drizzle-kit introspect staging (schema.ts is the real output and IS committed)
+drizzle/meta/
