@@ -4,6 +4,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/requestLogger";
 import { healthRoute } from "./routes/health";
 import { booksRoute } from "./routes/books";
+import { seriesRoute } from "./routes/series";
 
 export function createApp() {
   const app = new Hono();
@@ -11,6 +12,7 @@ export function createApp() {
   app.use("*", cors({ origin: "*" }));
   app.route("/health", healthRoute);
   app.route("/books", booksRoute);
+  app.route("/series", seriesRoute);
   app.onError(errorHandler);
   return app;
 }
