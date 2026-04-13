@@ -8,6 +8,7 @@ import { settingsRoute } from "./routes/settings";
 import { booksAdminRoute } from "./routes/books";
 import { seriesAdminRoute } from "./routes/series";
 import { articlesAdminRoute } from "./routes/articles";
+import { dashboardRoute } from "./routes/dashboard";
 
 export function createApp() {
   const app = new Hono();
@@ -19,6 +20,7 @@ export function createApp() {
   app.route("/admin/books", booksAdminRoute);
   app.route("/admin/series", seriesAdminRoute);
   app.route("/admin/articles", articlesAdminRoute);
+  app.route("/admin/dashboard", dashboardRoute);
   app.onError(errorHandler);
   return app;
 }
