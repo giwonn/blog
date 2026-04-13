@@ -47,3 +47,5 @@ export {
   articlesFindVisibleBySeriesId,
   articlesFindAllBySeriesId,
 } from "./domains/articles";
+
+export { type Page, makePage } from "./pagination";
