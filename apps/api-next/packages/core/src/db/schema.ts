@@ -72,7 +72,7 @@ export const visitor_sessions = pgTable("visitor_sessions", {
 ]);
 
 export const series = pgTable("series", {
-	id: bigserial({ mode: "bigint" }).primaryKey().notNull(),
+	id: bigserial({ mode: "number" }).primaryKey().notNull(),
 	title: varchar({ length: 255 }).notNull(),
 	slug: varchar({ length: 255 }).notNull(),
 	description: text(),
