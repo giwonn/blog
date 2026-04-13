@@ -52,4 +52,28 @@ export async function findAllByBookId(bookId: number): Promise<Article[]> {
   return rows as Article[];
 }
 
+export async function findVisibleBySeriesId(seriesId: number): Promise<Article[]> {
+  const rows = await db
+    .select(articleColumns)
+    .from(schema.articles)
+    .where(
+      and(
+        eq(schema.articles.series_id, seriesId),
+        inArray(schema.articles.status, VISIBLE_STATUSES as unknown as string[]),
+      ),
+    );
+  castStatus(rows);
+  return rows as Article[];
+}
+
+export async function findAllBySeriesId(seriesId: number): Promise<Article[]> {
+  const rows = await db
+    .select(articleColumns)
+    .from(schema.articles)
+    .where(eq(schema.articles.series_id, seriesId))
+    .orderBy(asc(schema.articles.order_in_series));
+  castStatus(rows);
+  return rows as Article[];
+}
+
 export type { ArticleStatus };
