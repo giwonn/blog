@@ -6,6 +6,8 @@ export type ErrorCodeValue = {
 export const ErrorCode = {
   UNAUTHORIZED: { status: 401, message: "Unauthorized" },
   INTERNAL: { status: 500, message: "Internal server error" },
+  BOOK_NOT_FOUND: { status: 404, message: "책을 찾을 수 없습니다" },
+  BOOK_SLUG_DUPLICATE: { status: 400, message: "이미 사용 중인 책 slug입니다" },
 } as const satisfies Record<string, ErrorCodeValue>;
 
 export type ErrorCodeKey = keyof typeof ErrorCode;
