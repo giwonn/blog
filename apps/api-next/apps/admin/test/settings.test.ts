@@ -15,9 +15,16 @@ async function mintValidToken() {
     .sign(secret);
 }
 
-function authHeaders(token: string): HeadersInit {
+function authHeaders(token: string): Record<string, string> {
   return { authorization: `Bearer ${token}`, "content-type": "application/json" };
 }
+
+type SettingsBody = {
+  data: {
+    blog: { name: string; description: string; profileImage: string | null };
+    analytics: { trackingEnabled: boolean };
+  };
+};
 
 describe("admin settings endpoints", () => {
   const app = createApp();
@@ -53,7 +60,7 @@ describe("admin settings endpoints", () => {
       }),
     });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as SettingsBody;
     expect(body.data.blog).toEqual({
       name: "Giwon's Blog",
       description: "dev notes",
@@ -78,7 +85,7 @@ describe("admin settings endpoints", () => {
       body: JSON.stringify({ name: "N", description: "D", profileImage: null }),
     });
     expect(blogRes.status).toBe(200);
-    const body = await blogRes.json();
+    const body = (await blogRes.json()) as SettingsBody;
     expect(body.data.blog).toEqual({ name: "N", description: "D", profileImage: null });
     expect(body.data.analytics).toEqual({ trackingEnabled: false });
   });
@@ -90,7 +97,7 @@ describe("admin settings endpoints", () => {
       body: JSON.stringify({ name: 123 }), // wrong type for name
     });
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = (await res.json()) as { message: string };
     expect(body).toHaveProperty("message");
     expect(typeof body.message).toBe("string");
   });
@@ -102,7 +109,7 @@ describe("admin settings endpoints", () => {
       body: JSON.stringify({ trackingEnabled: false }),
     });
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as SettingsBody;
     expect(body.data.analytics).toEqual({ trackingEnabled: false });
     expect(body.data.blog).toEqual({ name: "Blog", description: "", profileImage: null });
   });

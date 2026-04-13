@@ -7,13 +7,15 @@ import {
   updateBlogConfig,
   updateAnalyticsConfig,
 } from "@api-next/core";
-import type { ZodError } from "zod";
-
 // Maps a Zod error to the Plan A envelope shape `{ message: string }`.
 // Other domains can import this helper once it graduates to a shared module,
 // but for Plan B the duplication overhead is two lines per route so we keep
-// it local.
-function validationErrorMessage(error: ZodError): string {
+// it local. Typed structurally because Zod v4 split its error types into
+// $ZodError (internal, used by zValidator's hook) and ZodError (public).
+type ZodIssueLike = { path: PropertyKey[]; message: string };
+type ZodErrorLike = { issues: ZodIssueLike[] };
+
+function validationErrorMessage(error: ZodErrorLike): string {
   const first = error.issues[0];
   if (!first) return "Invalid request body";
   const path = first.path.join(".");
