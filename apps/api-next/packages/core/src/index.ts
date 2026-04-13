@@ -27,9 +27,23 @@ export {
 } from "./domains/books";
 
 export {
+  SeriesRequestSchema,
+  type SeriesRequest,
+  type Series,
+  seriesFindAll,
+  seriesFindById,
+  seriesFindBySlug,
+  seriesCreate,
+  seriesUpdate,
+  seriesDelete,
+} from "./domains/series";
+
+export {
   type Article,
   type ArticleStatus,
   VISIBLE_STATUSES,
   articlesFindVisibleByBookId,
   articlesFindAllByBookId,
+  articlesFindVisibleBySeriesId,
+  articlesFindAllBySeriesId,
 } from "./domains/articles";
