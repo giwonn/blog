@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./db": "./src/db/client.ts",
     "./env": "./src/env.ts",
-    "./errors": "./src/errors.ts"
+    "./errors": "./src/errors.ts",
+    "./test-helpers": "./src/test-helpers/index.ts"
   },
   "scripts": {
     "db:introspect": "bunx drizzle-kit introspect",
