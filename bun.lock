@@ -60,6 +60,21 @@
         "vitest": "^4.1.4",
       },
     },
+    "apps/api-next/apps/admin": {
+      "name": "api-admin-next",
+      "version": "0.0.0",
+      "dependencies": {
+        "@api-next/core": "workspace:*",
+        "hono": "latest",
+        "jose": "latest",
+        "pino": "latest",
+        "zod": "latest",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.6.0",
+      },
+    },
     "apps/api-next/apps/blog": {
       "name": "api-blog-next",
       "version": "0.0.0",
@@ -875,6 +890,8 @@
     "ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 
     "ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
+
+    "api-admin-next": ["api-admin-next@workspace:apps/api-next/apps/admin"],
 
     "api-blog-next": ["api-blog-next@workspace:apps/api-next/apps/blog"],
 
