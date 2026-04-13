@@ -10,6 +10,10 @@ export const ErrorCode = {
   BOOK_SLUG_DUPLICATE: { status: 400, message: "이미 사용 중인 책 slug입니다" },
   SERIES_NOT_FOUND: { status: 404, message: "시리즈를 찾을 수 없습니다" },
   SERIES_SLUG_DUPLICATE: { status: 400, message: "이미 사용 중인 시리즈 slug입니다" },
+  ARTICLE_NOT_FOUND: { status: 404, message: "게시글을 찾을 수 없습니다" },
+  ARTICLE_PASSWORD_REQUIRED: { status: 403, message: "비밀번호가 필요한 게시글입니다" },
+  ARTICLE_PASSWORD_INCORRECT: { status: 403, message: "비밀번호가 올바르지 않습니다" },
+  ARTICLE_SLUG_DUPLICATE: { status: 400, message: "이미 사용 중인 slug입니다" },
 } as const satisfies Record<string, ErrorCodeValue>;
 
 export type ErrorCodeKey = keyof typeof ErrorCode;
