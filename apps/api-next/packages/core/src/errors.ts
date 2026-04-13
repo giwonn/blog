@@ -8,6 +8,8 @@ export const ErrorCode = {
   INTERNAL: { status: 500, message: "Internal server error" },
   BOOK_NOT_FOUND: { status: 404, message: "책을 찾을 수 없습니다" },
   BOOK_SLUG_DUPLICATE: { status: 400, message: "이미 사용 중인 책 slug입니다" },
+  SERIES_NOT_FOUND: { status: 404, message: "시리즈를 찾을 수 없습니다" },
+  SERIES_SLUG_DUPLICATE: { status: 400, message: "이미 사용 중인 시리즈 slug입니다" },
 } as const satisfies Record<string, ErrorCodeValue>;
 
 export type ErrorCodeKey = keyof typeof ErrorCode;
