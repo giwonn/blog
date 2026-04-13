@@ -1,30 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+function subscribeResize(callback: () => void) {
+    window.addEventListener("resize", callback);
+    return () => window.removeEventListener("resize", callback);
+}
+
+function subscribeScroll(callback: () => void) {
+    window.addEventListener("scroll", callback, { passive: true });
+    window.addEventListener("resize", callback);
+    return () => {
+        window.removeEventListener("scroll", callback);
+        window.removeEventListener("resize", callback);
+    };
+}
+
+function getHeaderHeight() {
+    return document.querySelector("header")?.offsetHeight ?? 0;
+}
+
+function getProgress() {
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    if (docHeight <= 0) return 0;
+    return Math.min((window.scrollY / docHeight) * 100, 100);
+}
+
+const getServerZero = () => 0;
 
 export function ReadingProgressBar() {
-    const [progress, setProgress] = useState(0);
-    const [headerHeight, setHeaderHeight] = useState(0);
-
-    useEffect(() => {
-        const header = document.querySelector("header");
-        if (header) {
-            setHeaderHeight(header.offsetHeight);
-        }
-
-        function handleScroll() {
-            const scrollTop = window.scrollY;
-            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-            if (docHeight > 0) {
-                setProgress(Math.min((scrollTop / docHeight) * 100, 100));
-            }
-        }
-
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        handleScroll();
-
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
+    const headerHeight = useSyncExternalStore(subscribeResize, getHeaderHeight, getServerZero);
+    const progress = useSyncExternalStore(subscribeScroll, getProgress, getServerZero);
 
     if (!headerHeight) return null;
 

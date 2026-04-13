@@ -7,7 +7,7 @@ export function Header() {
         <header className="sticky top-0 z-40 bg-white dark:bg-[#303030] border-b py-4">
             <Container className="flex items-center justify-between">
                 <Link href="/" className="text-xl font-bold">
-                    Giwon's Blog
+                    Giwon&apos;s Blog
                 </Link>
                 <div className="flex items-center gap-4">
                     <nav className="flex gap-4">
