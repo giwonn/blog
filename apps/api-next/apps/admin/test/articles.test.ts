@@ -1,0 +1,304 @@
+import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
+import { SignJWT } from "jose";
+import { createApp } from "../src/app";
+import { env, db, schema } from "@api-next/core";
+import { resetDb } from "@api-next/core/test-helpers";
+
+const secret = new TextEncoder().encode(env.ADMIN_JWT_SECRET);
+
+async function mintValidToken() {
+  return await new SignJWT({})
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(env.ADMIN_GOOGLE_SUB[0]!)
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(Date.now() / 1000) + 300)
+    .sign(secret);
+}
+
+function authHeaders(token: string): Record<string, string> {
+  return { authorization: `Bearer ${token}`, "content-type": "application/json" };
+}
+
+type ArticleResponse = {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+  status: "DRAFT" | "PUBLIC" | "LOCKED" | "PRIVATE";
+  password: string | null;
+  seriesId: number | null;
+  orderInSeries: number | null;
+  bookId: number | null;
+  orderInBook: number | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type PageResponse = {
+  data: {
+    content: ArticleResponse[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+    first: boolean;
+    last: boolean;
+    empty: boolean;
+  };
+};
+
+const validBody = {
+  title: "Hello Hono",
+  slug: "hello-hono",
+  content: "# Hello\nbody text",
+  status: "DRAFT" as const,
+  password: null,
+  seriesId: null,
+  orderInSeries: null,
+  bookId: null,
+  orderInBook: null,
+};
+
+async function seedArticle(overrides: Partial<typeof validBody> & { publishedAt?: string | null } = {}) {
+  const now = new Date().toISOString();
+  const status = overrides.status ?? "PUBLIC";
+  const inserted = await db
+    .insert(schema.articles)
+    .values({
+      title: overrides.title ?? validBody.title,
+      slug: overrides.slug ?? `seed-${Math.random().toString(36).slice(2, 9)}`,
+      content: overrides.content ?? validBody.content,
+      status,
+      password: overrides.password ?? null,
+      series_id: overrides.seriesId ?? null,
+      order_in_series: overrides.orderInSeries ?? null,
+      book_id: overrides.bookId ?? null,
+      order_in_book: overrides.orderInBook ?? null,
+      published_at: overrides.publishedAt ?? (status === "PUBLIC" || status === "LOCKED" ? now : null),
+      created_at: now,
+      updated_at: now,
+    })
+    .returning({ id: schema.articles.id });
+  return inserted[0]!.id;
+}
+
+describe("admin articles endpoints", () => {
+  const app = createApp();
+  let token: string;
+
+  beforeAll(async () => {
+    token = await mintValidToken();
+  });
+
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  // ----- POST -----
+  it("POST creates a DRAFT article with publishedAt null", async () => {
+    const res = await app.request("/admin/articles", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(validBody),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { data: ArticleResponse };
+    expect(body.data.id).toBeGreaterThan(0);
+    expect(body.data.slug).toBe("hello-hono");
+    expect(body.data.status).toBe("DRAFT");
+    expect(body.data.publishedAt).toBeNull();
+  });
+
+  it("POST creates a PUBLIC article with publishedAt populated", async () => {
+    const res = await app.request("/admin/articles", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ ...validBody, status: "PUBLIC" }),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { data: ArticleResponse };
+    expect(body.data.status).toBe("PUBLIC");
+    expect(body.data.publishedAt).not.toBeNull();
+    expect(typeof body.data.publishedAt).toBe("string");
+  });
+
+  it("POST rejects duplicate slug with 400", async () => {
+    await seedArticle({ slug: "hello-hono" });
+    const res = await app.request("/admin/articles", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(validBody),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { message: string };
+    expect(body.message).toBe("이미 사용 중인 slug입니다");
+  });
+
+  it("POST rejects missing content with 400", async () => {
+    const { content: _c, ...bodyNoContent } = validBody;
+    const res = await app.request("/admin/articles", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(bodyNoContent),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  // ----- GET list -----
+  it("GET /admin/articles empty returns empty page", async () => {
+    const res = await app.request("/admin/articles", { headers: authHeaders(token) });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as PageResponse;
+    expect(body.data.content).toEqual([]);
+    expect(body.data.totalElements).toBe(0);
+    expect(body.data.empty).toBe(true);
+    expect(body.data.first).toBe(true);
+    expect(body.data.last).toBe(true);
+  });
+
+  it("GET /admin/articles paginates 25 articles into 3 pages of 10", async () => {
+    for (let i = 0; i < 25; i++) {
+      await seedArticle({ slug: `art-${i.toString().padStart(2, "0")}` });
+    }
+    const res = await app.request("/admin/articles", { headers: authHeaders(token) });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as PageResponse;
+    expect(body.data.content).toHaveLength(10);
+    expect(body.data.totalElements).toBe(25);
+    expect(body.data.totalPages).toBe(3);
+    expect(body.data.number).toBe(0);
+    expect(body.data.first).toBe(true);
+    expect(body.data.last).toBe(false);
+  });
+
+  it("GET /admin/articles?page=2&size=10 returns last 5 elements", async () => {
+    for (let i = 0; i < 25; i++) {
+      await seedArticle({ slug: `art-${i.toString().padStart(2, "0")}` });
+    }
+    const res = await app.request("/admin/articles?page=2&size=10", { headers: authHeaders(token) });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as PageResponse;
+    expect(body.data.content).toHaveLength(5);
+    expect(body.data.number).toBe(2);
+    expect(body.data.last).toBe(true);
+  });
+
+  // ----- GET by id -----
+  it("GET /admin/articles/:id returns the article", async () => {
+    const id = await seedArticle({ slug: "abc" });
+    const res = await app.request(`/admin/articles/${id}`, { headers: authHeaders(token) });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: ArticleResponse };
+    expect(body.data.id).toBe(id);
+    expect(body.data.slug).toBe("abc");
+  });
+
+  it("GET /admin/articles/:id returns 404 for missing", async () => {
+    const res = await app.request("/admin/articles/9999", { headers: authHeaders(token) });
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { message: string };
+    expect(body.message).toBe("게시글을 찾을 수 없습니다");
+  });
+
+  // ----- PUT -----
+  it("PUT updates and bumps updatedAt", async () => {
+    const id = await seedArticle({ slug: "to-update" });
+    await new Promise((r) => setTimeout(r, 5));
+    const res = await app.request(`/admin/articles/${id}`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify({ ...validBody, slug: "to-update", title: "Updated", status: "PUBLIC" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: ArticleResponse };
+    expect(body.data.title).toBe("Updated");
+    expect(body.data.updatedAt > body.data.createdAt).toBe(true);
+  });
+
+  it("PUT slug change to an existing slug → 400", async () => {
+    await seedArticle({ slug: "first" });
+    const id = await seedArticle({ slug: "second" });
+    const res = await app.request(`/admin/articles/${id}`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify({ ...validBody, slug: "first" }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { message: string };
+    expect(body.message).toBe("이미 사용 중인 slug입니다");
+  });
+
+  it("PUT same slug as self → 200", async () => {
+    const id = await seedArticle({ slug: "stable" });
+    const res = await app.request(`/admin/articles/${id}`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify({ ...validBody, slug: "stable" }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("PUT DRAFT → PUBLIC sets publishedAt for the first time", async () => {
+    const id = await seedArticle({ slug: "to-publish", status: "DRAFT", publishedAt: null });
+    const res = await app.request(`/admin/articles/${id}`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify({ ...validBody, slug: "to-publish", status: "PUBLIC" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: ArticleResponse };
+    expect(body.data.status).toBe("PUBLIC");
+    expect(body.data.publishedAt).not.toBeNull();
+  });
+
+  it("PUT 404 for missing", async () => {
+    const res = await app.request("/admin/articles/9999", {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify(validBody),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  // ----- DELETE -----
+  it("DELETE removes the article", async () => {
+    const id = await seedArticle();
+    const del = await app.request(`/admin/articles/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(token),
+    });
+    expect(del.status).toBe(204);
+    const get = await app.request(`/admin/articles/${id}`, { headers: authHeaders(token) });
+    expect(get.status).toBe(404);
+  });
+
+  it("DELETE 404 for missing", async () => {
+    const res = await app.request("/admin/articles/9999", {
+      method: "DELETE",
+      headers: authHeaders(token),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("all endpoints 401 without JWT", async () => {
+    const list = await app.request("/admin/articles");
+    expect(list.status).toBe(401);
+    const get = await app.request("/admin/articles/1");
+    expect(get.status).toBe(401);
+    const post = await app.request("/admin/articles", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(validBody),
+    });
+    expect(post.status).toBe(401);
+    const put = await app.request("/admin/articles/1", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(validBody),
+    });
+    expect(put.status).toBe(401);
+    const del = await app.request("/admin/articles/1", { method: "DELETE" });
+    expect(del.status).toBe(401);
+  });
+});
