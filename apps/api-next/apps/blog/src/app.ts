@@ -3,12 +3,14 @@ import { cors } from "hono/cors";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/requestLogger";
 import { healthRoute } from "./routes/health";
+import { booksRoute } from "./routes/books";
 
 export function createApp() {
   const app = new Hono();
   app.use("*", requestLogger);
   app.use("*", cors({ origin: "*" }));
   app.route("/health", healthRoute);
+  app.route("/books", booksRoute);
   app.onError(errorHandler);
   return app;
 }
