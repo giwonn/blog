@@ -28,4 +28,25 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   return result.data;
 }
 
-export const env = loadEnv();
+// Lazy cache: tests and preload scripts can mutate process.env before first read.
+let cached: Env | undefined;
+function getEnv(): Env {
+  if (!cached) cached = loadEnv();
+  return cached;
+}
+
+// Proxy lets call sites keep using `env.X` while deferring the parse until first access.
+export const env: Env = new Proxy({} as Env, {
+  get(_target, prop) {
+    return (getEnv() as Record<string, unknown>)[prop as string];
+  },
+  has(_target, prop) {
+    return prop in getEnv();
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getEnv() as object);
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    return Object.getOwnPropertyDescriptor(getEnv(), prop);
+  },
+});
