@@ -1,0 +1,311 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "highlight.js/styles/atom-one-dark.css";
+@import "katex/dist/katex.min.css";
+
+@custom-variant dark (&:is(.dark *));
+@plugin "@tailwindcss/typography";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Tiptap 에디터 스타일 */
+.ProseMirror {
+  /* 이미지 */
+  img {
+    max-width: 100%;
+    height: auto;
+    cursor: pointer;
+  }
+
+  img.ProseMirror-selectednode {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  /* Heading 스타일 조정 */
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 1rem 0 0.5rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0.875rem 0 0.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0.75rem 0 0.5rem;
+  }
+
+  /* Bold가 글자 크기에 영향 주지 않도록 */
+  strong {
+    font-weight: 700;
+    font-size: inherit;
+  }
+
+  /* 리스트 스타일 */
+  ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+  }
+
+  ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+  }
+
+  /* 코드 스타일 */
+  code {
+    background-color: #f3f4f6;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+  }
+
+  pre {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+
+    code {
+      background-color: transparent;
+      padding: 0;
+      color: inherit;
+      font-family: inherit;
+    }
+  }
+}
+
+/* 코드 하이라이팅 (VS Code Dark+ 테마) */
+.ProseMirror pre code .hljs-keyword { color: #569cd6 !important; }
+.ProseMirror pre code .hljs-built_in { color: #4ec9b0 !important; }
+.ProseMirror pre code .hljs-type { color: #4ec9b0 !important; }
+.ProseMirror pre code .hljs-literal { color: #569cd6 !important; }
+.ProseMirror pre code .hljs-number { color: #b5cea8 !important; }
+.ProseMirror pre code .hljs-string { color: #ce9178 !important; }
+.ProseMirror pre code .hljs-comment { color: #6a9955 !important; }
+.ProseMirror pre code .hljs-function { color: #dcdcaa !important; }
+.ProseMirror pre code .hljs-class { color: #4ec9b0 !important; }
+.ProseMirror pre code .hljs-class_ { color: #4ec9b0 !important; }
+.ProseMirror pre code .hljs-variable { color: #9cdcfe !important; }
+.ProseMirror pre code .hljs-attr { color: #9cdcfe !important; }
+.ProseMirror pre code .hljs-params { color: #9cdcfe !important; }
+.ProseMirror pre code .hljs-punctuation { color: #d4d4d4 !important; }
+.ProseMirror pre code .hljs-tag { color: #569cd6 !important; }
+.ProseMirror pre code .hljs-name { color: #569cd6 !important; }
+.ProseMirror pre code .hljs-attribute { color: #9cdcfe !important; }
+.ProseMirror pre code .hljs-selector-tag { color: #d7ba7d !important; }
+.ProseMirror pre code .hljs-selector-class { color: #d7ba7d !important; }
+.ProseMirror pre code .hljs-selector-id { color: #d7ba7d !important; }
+.ProseMirror pre code .hljs-property { color: #9cdcfe !important; }
+.ProseMirror pre code .hljs-meta { color: #569cd6 !important; }
+.ProseMirror pre code .hljs-title { color: #dcdcaa !important; }
+.ProseMirror pre code .hljs-title.function_ { color: #dcdcaa !important; }
+.ProseMirror pre code .hljs-title.class_ { color: #4ec9b0 !important; }
+.ProseMirror pre code .function_ { color: #dcdcaa !important; }
+.ProseMirror pre code .hljs-variable.language_ { color: #9cdcfe !important; }
+.ProseMirror pre code .language_ { color: #9cdcfe !important; }
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* 프리뷰 코드블록 스타일 (blog.giwon.dev와 동일) */
+.prose pre,
+.prose div > pre {
+  position: relative;
+  padding: 0 !important;
+  padding-top: 2rem !important;
+  background: #282c34 !important;
+  border-radius: 0.5rem;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+.prose .group {
+  margin: 1.25em 0;
+}
+
+.prose pre code {
+  display: block;
+  padding: 1rem !important;
+  padding-right: 3rem !important;
+  overflow-x: auto;
+  color: #abb2bf;
+}
+
+.prose pre code.hljs {
+  color: inherit;
+}
+
+.prose pre::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0.4rem 0.75rem;
+  min-height: 2rem;
+  box-sizing: border-box;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9ca3af;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: right;
+  z-index: 1;
+}
+
+.prose pre::after {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  left: 0.75rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f56;
+  box-shadow:
+    20px 0 0 #ffbd2e,
+    40px 0 0 #27c93f;
+  z-index: 2;
+}
+
+/* 프리뷰 인라인 코드 스타일 */
+.prose :not(pre) > code {
+  background-color: #f3f4f6;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-weight: 400;
+}
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
