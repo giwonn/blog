@@ -1,0 +1,152 @@
+import { pgTable, unique, bigint, timestamp, varchar, doublePrecision, date, integer, bigserial, text, jsonb, check, index, boolean } from "drizzle-orm/pg-core"
+import { sql } from "drizzle-orm"
+
+
+
+export const article_stats = pgTable("article_stats", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "article_stats_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	aggregated_at: timestamp({ precision: 6, mode: 'string' }).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	article_id: bigint({ mode: "number" }).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	view_count: bigint({ mode: "number" }).notNull(),
+}, (table) => [
+	unique("ukr2t3yof989xcjgnsgk1cub993").on(table.article_id),
+]);
+
+export const page_views = pgTable("page_views", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "page_views_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	created_at: timestamp({ precision: 6, mode: 'string' }).notNull(),
+	ip_address: varchar({ length: 255 }).notNull(),
+	path: varchar({ length: 255 }).notNull(),
+	referrer: varchar({ length: 255 }),
+	session_id: varchar({ length: 255 }),
+	user_agent: varchar({ length: 255 }),
+	city: varchar({ length: 255 }),
+	country: varchar({ length: 255 }),
+	latitude: doublePrecision(),
+	longitude: doublePrecision(),
+});
+
+export const daily_article_stats = pgTable("daily_article_stats", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "daily_article_stats_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	article_id: bigint({ mode: "number" }).notNull(),
+	date: date().notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	view_count: bigint({ mode: "number" }).notNull(),
+}, (table) => [
+	unique("uk8dscgkk34il0tvbmhq9dd8gu4").on(table.article_id, table.date),
+]);
+
+export const daily_visitor_stats = pgTable("daily_visitor_stats", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "daily_visitor_stats_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	date: date().notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	visitor_count: bigint({ mode: "number" }).notNull(),
+}, (table) => [
+	unique("uk948ehpefli5wl7oi408j4hylh").on(table.date),
+]);
+
+export const visitor_sessions = pgTable("visitor_sessions", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "visitor_sessions_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	first_visit_at: timestamp({ precision: 6, mode: 'string' }).notNull(),
+	ip_address: varchar({ length: 255 }).notNull(),
+	last_visit_at: timestamp({ precision: 6, mode: 'string' }).notNull(),
+	page_view_count: integer().notNull(),
+	session_id: varchar({ length: 255 }).notNull(),
+	user_agent: varchar({ length: 255 }),
+}, (table) => [
+	unique("ukb05vy5tm726vpbl2pesj2nsl").on(table.session_id),
+]);
+
+export const series = pgTable("series", {
+	id: bigserial({ mode: "bigint" }).primaryKey().notNull(),
+	title: varchar({ length: 255 }).notNull(),
+	slug: varchar({ length: 255 }).notNull(),
+	description: text(),
+	thumbnail_url: varchar({ length: 255 }),
+	created_at: timestamp({ mode: 'string' }).notNull(),
+	updated_at: timestamp({ mode: 'string' }).notNull(),
+}, (table) => [
+	unique("series_slug_key").on(table.slug),
+]);
+
+export const books = pgTable("books", {
+	id: bigserial({ mode: "bigint" }).primaryKey().notNull(),
+	title: varchar({ length: 255 }).notNull(),
+	slug: varchar({ length: 255 }).notNull(),
+	author: varchar({ length: 255 }).notNull(),
+	publisher: varchar({ length: 255 }),
+	thumbnail_url: varchar({ length: 255 }),
+	description: text(),
+	isbn: varchar({ length: 255 }),
+	read_start_date: date(),
+	read_end_date: date(),
+	rating: integer(),
+	created_at: timestamp({ mode: 'string' }).notNull(),
+	updated_at: timestamp({ mode: 'string' }).notNull(),
+}, (table) => [
+	unique("books_slug_key").on(table.slug),
+]);
+
+export const settings = pgTable("settings", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().notNull(),
+	config: jsonb().notNull(),
+});
+
+export const articles = pgTable("articles", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "articles_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	content: text().notNull(),
+	created_at: timestamp({ precision: 6, mode: 'string' }).notNull(),
+	title: varchar({ length: 255 }).notNull(),
+	updated_at: timestamp({ precision: 6, mode: 'string' }).notNull(),
+	published_at: timestamp({ precision: 6, mode: 'string' }),
+	status: varchar({ length: 255 }).default('PUBLISHED').notNull(),
+	password: varchar({ length: 255 }),
+	slug: varchar({ length: 255 }).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	series_id: bigint({ mode: "number" }),
+	order_in_series: integer(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	book_id: bigint({ mode: "number" }),
+	order_in_book: integer(),
+}, (table) => [
+	unique("articles_slug_unique").on(table.slug),
+	check("articles_status_check", sql`(status)::text = ANY ((ARRAY['DRAFT'::character varying, 'PUBLIC'::character varying, 'LOCKED'::character varying, 'PRIVATE'::character varying])::text[])`),
+]);
+
+export const batch_job_log = pgTable("batch_job_log", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "batch_job_log_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+	error_message: text(),
+	finished_at: timestamp({ precision: 6, mode: 'string' }),
+	job_name: varchar({ length: 100 }).notNull(),
+	started_at: timestamp({ precision: 6, mode: 'string' }).notNull(),
+	status: varchar({ length: 20 }).notNull(),
+	target_date: date(),
+}, (table) => [
+	check("batch_job_log_status_check", sql`(status)::text = ANY ((ARRAY['PENDING'::character varying, 'SUCCESS'::character varying, 'FAIL'::character varying])::text[])`),
+]);
+
+export const flyway_schema_history = pgTable("flyway_schema_history", {
+	installed_rank: integer().primaryKey().notNull(),
+	version: varchar({ length: 50 }),
+	description: varchar({ length: 200 }).notNull(),
+	type: varchar({ length: 20 }).notNull(),
+	script: varchar({ length: 1000 }).notNull(),
+	checksum: integer(),
+	installed_by: varchar({ length: 100 }).notNull(),
+	installed_on: timestamp({ mode: 'string' }).defaultNow().notNull(),
+	execution_time: integer().notNull(),
+	success: boolean().notNull(),
+}, (table) => [
+	index("flyway_schema_history_s_idx").using("btree", table.success.asc().nullsLast().op("bool_ops")),
+]);
