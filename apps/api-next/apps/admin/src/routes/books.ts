@@ -9,6 +9,8 @@ import {
   bookUpdate,
   bookDelete,
   articlesFindAllByBookId,
+  articleFindById,
+  articleUpdate,
 } from "@api-next/core";
 
 // Local copy of the Plan B Zod-error → message mapper. Kept inline until
@@ -22,6 +24,10 @@ function validationErrorMessage(error: ZodErrorLike): string {
   const path = first.path.join(".");
   return path ? `${path}: ${first.message}` : first.message;
 }
+
+const articleOrderRequestSchema = z.object({
+  articleIds: z.array(z.number().int().positive()),
+});
 
 const idParamSchema = z.object({ id: z.coerce.number().int().positive() });
 
@@ -90,5 +96,41 @@ booksAdminRoute.delete(
     const { id } = c.req.valid("param");
     await bookDelete(id);
     return c.body(null, 204);
+  },
+);
+
+booksAdminRoute.put(
+  "/:id/article-order",
+  zValidator("param", idParamSchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ message: validationErrorMessage(result.error) }, 400);
+    }
+  }),
+  zValidator("json", articleOrderRequestSchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ message: validationErrorMessage(result.error) }, 400);
+    }
+  }),
+  async (c) => {
+    const { id: bookId } = c.req.valid("param");
+    const { articleIds } = c.req.valid("json");
+    // Verify the book exists; throws BOOK_NOT_FOUND otherwise.
+    await bookFindById(bookId);
+    for (let i = 0; i < articleIds.length; i++) {
+      const articleId = articleIds[i]!;
+      const article = await articleFindById(articleId);
+      await articleUpdate(articleId, {
+        title: article.title,
+        slug: article.slug,
+        content: article.content,
+        status: article.status,
+        password: article.password,
+        seriesId: article.seriesId,
+        orderInSeries: article.orderInSeries,
+        bookId,
+        orderInBook: i + 1,
+      });
+    }
+    return c.json({ data: "Article order updated successfully" });
   },
 );
