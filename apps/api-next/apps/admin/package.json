@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@api-next/core": "workspace:*",
+    "@hono/zod-validator": "^0.7.6",
     "hono": "^4.12.12",
     "jose": "^6.2.2",
     "pino": "^10.3.1",
