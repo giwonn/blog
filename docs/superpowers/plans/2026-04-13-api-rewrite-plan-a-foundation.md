@@ -1510,3 +1510,4 @@ Before declaring Plan A done, confirm each deliverable from the design spec:
 - No changes to blog/admin frontend env vars (Plan K cutover)
 - No changes to the existing Kotlin `apps/api` tree
 - No `@api-next/core/middleware` extraction — blog and admin currently duplicate `errorHandler` and `requestLogger`. Revisit once Plans B–J reveal real divergence.
+- `@hono/zod-validator` and `hono-pino` are listed in the design spec's stack table but are NOT installed in Plan A because Plan A has no validated request bodies (only `/health`, no input) and the request logger is hand-rolled with pino + `performance.now()`. They will be added in Plan B when the first domain with request input lands, and any migration from the hand-rolled logger to `hono-pino` will happen then.

@@ -1,3 +1,7 @@
+// Intentionally duplicated with apps/admin/src/middleware/errorHandler.ts.
+// Extraction to @api-next/core/middleware is deferred until real divergence
+// appears across Plans B–J (see Plan A spec Out of Scope section).
+
 import type { ErrorHandler } from "hono";
 import { BusinessError, ErrorCode } from "@api-next/core";
 

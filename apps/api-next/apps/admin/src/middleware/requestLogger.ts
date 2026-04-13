@@ -1,3 +1,7 @@
+// Intentionally duplicated with apps/blog/src/middleware/requestLogger.ts.
+// Extraction to @api-next/core/middleware is deferred until real divergence
+// appears across Plans B–J (see Plan A spec Out of Scope section).
+
 import type { MiddlewareHandler } from "hono";
 import { pino } from "pino";
 import { env } from "@api-next/core";
