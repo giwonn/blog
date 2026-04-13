@@ -13,3 +13,23 @@ export {
   updateBlogConfig,
   updateAnalyticsConfig,
 } from "./domains/settings";
+
+export {
+  BookRequestSchema,
+  type BookRequest,
+  type Book,
+  bookFindAll,
+  bookFindById,
+  bookFindBySlug,
+  bookCreate,
+  bookUpdate,
+  bookDelete,
+} from "./domains/books";
+
+export {
+  type Article,
+  type ArticleStatus,
+  VISIBLE_STATUSES,
+  articlesFindVisibleByBookId,
+  articlesFindAllByBookId,
+} from "./domains/articles";
