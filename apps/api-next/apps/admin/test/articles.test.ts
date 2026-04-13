@@ -60,9 +60,16 @@ const validBody = {
   orderInBook: null,
 };
 
-async function seedArticle(overrides: Partial<typeof validBody> & { publishedAt?: string | null } = {}) {
+type ArticleStatusLiteral = "DRAFT" | "PUBLIC" | "LOCKED" | "PRIVATE";
+
+async function seedArticle(
+  overrides: Partial<Omit<typeof validBody, "status">> & {
+    status?: ArticleStatusLiteral;
+    publishedAt?: string | null;
+  } = {},
+) {
   const now = new Date().toISOString();
-  const status = overrides.status ?? "PUBLIC";
+  const status: ArticleStatusLiteral = overrides.status ?? "PUBLIC";
   const inserted = await db
     .insert(schema.articles)
     .values({
