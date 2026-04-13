@@ -242,6 +242,32 @@ describe("admin series endpoints", () => {
     expect(res.status).toBe(404);
   });
 
+  // ----- article-order (recovered from Plan D deferred) -----
+  it("PUT /admin/series/:id/article-order reorders articles", async () => {
+    const id = await seedSeries();
+    const a1 = await seedArticle({ seriesId: id, status: "PUBLIC", orderInSeries: 99, slug: "sa1" });
+    const a2 = await seedArticle({ seriesId: id, status: "PUBLIC", orderInSeries: 99, slug: "sa2" });
+    const a3 = await seedArticle({ seriesId: id, status: "PUBLIC", orderInSeries: 99, slug: "sa3" });
+    const res = await app.request(`/admin/series/${id}/article-order`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify({ articleIds: [a3, a1, a2] }),
+    });
+    expect(res.status).toBe(200);
+    const get = await app.request(`/admin/series/${id}`, { headers: authHeaders(token) });
+    const body = (await get.json()) as { data: { articles: { slug: string }[] } };
+    expect(body.data.articles.map((a) => a.slug)).toEqual(["sa3", "sa1", "sa2"]);
+  });
+
+  it("PUT /admin/series/:id/article-order returns 404 for missing series", async () => {
+    const res = await app.request(`/admin/series/9999/article-order`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify({ articleIds: [] }),
+    });
+    expect(res.status).toBe(404);
+  });
+
   // ----- Auth -----
   it("all endpoints return 401 without a JWT", async () => {
     const list = await app.request("/admin/series");
