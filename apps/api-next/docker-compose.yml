@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: api-next-dev-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: api_next_dev
+      POSTGRES_USER: api_next
+      POSTGRES_PASSWORD: api_next_dev_pwd
+    volumes:
+      - api-next-dev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api_next -d api_next_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  api-next-dev-db:
