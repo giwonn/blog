@@ -5,6 +5,7 @@ import { requestLogger } from "./middleware/requestLogger";
 import { healthRoute } from "./routes/health";
 import { booksRoute } from "./routes/books";
 import { seriesRoute } from "./routes/series";
+import { articlesRoute } from "./routes/articles";
 
 export function createApp() {
   const app = new Hono();
@@ -13,6 +14,7 @@ export function createApp() {
   app.route("/health", healthRoute);
   app.route("/books", booksRoute);
   app.route("/series", seriesRoute);
+  app.route("/articles", articlesRoute);
   app.onError(errorHandler);
   return app;
 }
