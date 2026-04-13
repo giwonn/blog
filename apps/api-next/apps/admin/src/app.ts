@@ -5,6 +5,7 @@ import { requestLogger } from "./middleware/requestLogger";
 import { jwtAuth } from "./middleware/jwtAuth";
 import { healthRoute } from "./routes/health";
 import { settingsRoute } from "./routes/settings";
+import { booksAdminRoute } from "./routes/books";
 
 export function createApp() {
   const app = new Hono();
@@ -13,6 +14,7 @@ export function createApp() {
   app.use("*", jwtAuth);
   app.route("/health", healthRoute);
   app.route("/admin/settings", settingsRoute);
+  app.route("/admin/books", booksAdminRoute);
   app.onError(errorHandler);
   return app;
 }
