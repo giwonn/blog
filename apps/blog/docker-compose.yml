@@ -1,0 +1,23 @@
+name: giwon-blog
+
+services:
+  blog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
+    container_name: giwon-blog
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - blog-network
+    environment:
+      - NODE_ENV=production
+      - API_BASE_URL=http://giwon-blog-api-blog:8080
+      - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
+
+networks:
+  blog-network:
+    external: true
