@@ -1,3 +1,9 @@
+> **Monorepo notice:** This file documents the `blog` app inside the `blog` monorepo.
+> For cross-cutting rules (path discipline, commit conventions, git workflow), see the root [`CLAUDE.md`](../../CLAUDE.md).
+> Run `git` commands from the monorepo root (`~/github/new-blog`), not from this folder.
+
+---
+
 # 블로그 개발
 
 ## 참고할 Claude Skills

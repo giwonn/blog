@@ -1,3 +1,9 @@
+> **Monorepo notice:** This file documents the `admin` app inside the `blog` monorepo.
+> For cross-cutting rules (path discipline, commit conventions, git workflow), see the root [`CLAUDE.md`](../../CLAUDE.md).
+> Run `git` commands from the monorepo root (`~/github/new-blog`), not from this folder.
+
+---
+
 # 블로그 Admin
 
 블로그 관리자용 Admin 프로젝트

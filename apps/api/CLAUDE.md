@@ -1,3 +1,9 @@
+> **Monorepo notice:** This file documents the `api` app inside the `blog` monorepo.
+> For cross-cutting rules (path discipline, commit conventions, git workflow), see the root [`CLAUDE.md`](../../CLAUDE.md).
+> Run `git` commands from the monorepo root (`~/github/new-blog`), not from this folder.
+
+---
+
 # giwon-blog-api
 
 블로그 시스템의 백엔드 API. 블로그 프론트(giwon-blog)와 어드민 프론트(giwon-blog-admin)가 바라보는 서버.
