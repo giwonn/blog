@@ -96,3 +96,4 @@ export {
   analyticsGetArticleAccessHistory,
 } from "./domains/analytics";
 export { toUtcDateRange } from "./timezone";
+export { type RecentComment, commentsGetRecent, commentsParse } from "./domains/comments";
