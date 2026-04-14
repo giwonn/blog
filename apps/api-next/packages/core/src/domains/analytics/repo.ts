@@ -246,3 +246,54 @@ export async function getVisitorCountByDate(date: string): Promise<VisitorCount>
   `)) as unknown as RawRow[];
   return { count: toNumber(rows[0]?.count ?? 0) };
 }
+
+export type PageViewRow = {
+  path: string;
+  ipAddress: string;
+  userAgent: string | null;
+  referrer: string | null;
+  sessionId: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  country: string | null;
+  city: string | null;
+};
+
+export async function savePageView(row: PageViewRow): Promise<void> {
+  const now = new Date().toISOString();
+  await db.execute(sql`
+    INSERT INTO page_views (
+      path, ip_address, user_agent, referrer, session_id,
+      latitude, longitude, country, city, created_at
+    ) VALUES (
+      ${row.path}, ${row.ipAddress}, ${row.userAgent}, ${row.referrer}, ${row.sessionId},
+      ${row.latitude}, ${row.longitude}, ${row.country}, ${row.city}, ${now}::timestamp
+    )
+  `);
+}
+
+export async function upsertSession(
+  sessionId: string,
+  ipAddress: string,
+  userAgent: string | null,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db.execute(sql`
+    INSERT INTO visitor_sessions (
+      session_id, ip_address, user_agent, first_visit_at, last_visit_at, page_view_count
+    ) VALUES (
+      ${sessionId}, ${ipAddress}, ${userAgent}, ${now}::timestamp, ${now}::timestamp, 1
+    )
+    ON CONFLICT (session_id) DO UPDATE SET
+      last_visit_at = EXCLUDED.last_visit_at,
+      page_view_count = visitor_sessions.page_view_count + 1
+  `);
+}
+
+export async function saveDailyVisitorStats(date: string, visitorCount: number): Promise<void> {
+  await db.execute(sql`
+    INSERT INTO daily_visitor_stats (date, visitor_count)
+    VALUES (${date}::date, ${visitorCount})
+    ON CONFLICT (date) DO UPDATE SET visitor_count = EXCLUDED.visitor_count
+  `);
+}
