@@ -94,6 +94,19 @@ export {
   analyticsGetVisitorLocations,
   analyticsGetIpAccessHistory,
   analyticsGetArticleAccessHistory,
+  type GeoLocation,
+  type VisitorSummary,
+  type PageViewInput,
+  PageViewRequestSchema,
+  analyticsSavePageView,
+  analyticsUpsertSession,
+  analyticsSaveDailyVisitorStats,
+  analyticsResolveGeoLocation,
+  analyticsAddVisitor,
+  analyticsGetVisitorCount,
+  analyticsRecordPageView,
+  analyticsGetVisitorSummary,
+  analyticsVisitorStatsAggregate,
 } from "./domains/analytics";
 export { toUtcDateRange } from "./timezone";
 export { type RecentComment, commentsGetRecent, commentsParse } from "./domains/comments";

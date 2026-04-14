@@ -34,3 +34,28 @@ export {
   getIpAccessHistory as analyticsGetIpAccessHistory,
   getArticleAccessHistory as analyticsGetArticleAccessHistory,
 } from "./service";
+
+export {
+  type GeoLocation,
+  type VisitorSummary,
+  type PageViewInput,
+  PageViewRequestSchema,
+} from "./types";
+
+export {
+  savePageView as analyticsSavePageView,
+  upsertSession as analyticsUpsertSession,
+  saveDailyVisitorStats as analyticsSaveDailyVisitorStats,
+} from "./repo";
+
+export { resolveGeoLocation as analyticsResolveGeoLocation } from "./geo";
+export {
+  addVisitor as analyticsAddVisitor,
+  getVisitorCount as analyticsGetVisitorCount,
+} from "./visitorCounter";
+
+export {
+  recordPageView as analyticsRecordPageView,
+  getVisitorSummary as analyticsGetVisitorSummary,
+  visitorStatsAggregate as analyticsVisitorStatsAggregate,
+} from "./service";
