@@ -2,13 +2,15 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test"
 import path from "node:path";
 import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import { SignJWT } from "jose";
+import { resetEnvCache } from "@api-next/core/env";
 
 const TEST_STORAGE = path.join(process.cwd(), "storage-images-test");
 process.env.IMAGE_STORAGE_PATH = TEST_STORAGE;
 process.env.IMAGE_PUBLIC_URL = "http://localhost:8081/images";
+resetEnvCache();
 
-import { createApp } from "../src/app";
-import { env } from "@api-next/core";
+const { createApp } = await import("../src/app");
+const { env } = await import("@api-next/core");
 
 const app = createApp();
 

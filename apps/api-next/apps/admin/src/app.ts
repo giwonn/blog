@@ -32,8 +32,7 @@ export function createApp() {
     if (rel.length === 0 || rel.split("/").includes("..") || rel.includes("\0")) {
       return c.notFound();
     }
-    const storagePath = process.env.IMAGE_STORAGE_PATH ?? env.IMAGE_STORAGE_PATH;
-    const full = path.join(storagePath, rel);
+    const full = path.join(env.IMAGE_STORAGE_PATH, rel);
     const file = Bun.file(full);
     if (!(await file.exists())) {
       return c.notFound();

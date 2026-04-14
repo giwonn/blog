@@ -40,6 +40,11 @@ function getEnv(): Env {
   return cached;
 }
 
+/** Test-only helper: clears the cached env so the next access re-parses process.env. */
+export function resetEnvCache(): void {
+  cached = undefined;
+}
+
 // Proxy lets call sites keep using `env.X` while deferring the parse until first access.
 export const env: Env = new Proxy({} as Env, {
   get(_target, prop) {
