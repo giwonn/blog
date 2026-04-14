@@ -65,5 +65,5 @@ export {
 } from "./domains/articles";
 
 export { type Page, makePage } from "./pagination";
-export { type PopularArticle, analyticsFindPopularArticles } from "./domains/analytics";
+export { type PopularArticle } from "./domains/analytics";
 export { toUtcDateRange } from "./timezone";
