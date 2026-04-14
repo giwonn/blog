@@ -30,8 +30,9 @@ describe("admin GET /health", () => {
     expect(await res.json()).toEqual({ data: { status: "ok" } });
   });
 
-  it("returns 401 without a JWT", async () => {
+  it("returns 200 without a JWT (health is public)", async () => {
     const res = await app.request("/health");
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ data: { status: "ok" } });
   });
 });

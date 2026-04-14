@@ -15,7 +15,7 @@ export function createApp() {
   const app = new Hono();
   app.use("*", requestLogger);
   app.use("*", cors({ origin: "http://localhost:3001", credentials: true }));
-  app.use("*", jwtAuth);
+  app.use("/admin/*", jwtAuth);
   app.route("/health", healthRoute);
   app.route("/admin/settings", settingsRoute);
   app.route("/admin/books", booksAdminRoute);
