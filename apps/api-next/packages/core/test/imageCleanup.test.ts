@@ -7,11 +7,9 @@ process.env.IMAGE_STORAGE_PATH = TEST_ROOT;
 process.env.IMAGE_PUBLIC_URL = "http://localhost:8081/images";
 
 // Import after env override so the lazy env proxy reads the correct path.
-// Import from the image domain directly to avoid pulling in db/client.ts,
-// which would initialise the env cache before our override above takes effect.
-const { cleanupTempImages: imageCleanupTempImages } = await import(
-  "../src/domains/image/service"
-);
+// Domain barrel (not core root) — avoids pulling in db/client.ts, which
+// would initialise the env cache before our override above takes effect.
+const { imageCleanupTempImages } = await import("../src/domains/image");
 
 async function seedFile(name: string, mtimeMs: number) {
   const dir = path.join(TEST_ROOT, "temp");
