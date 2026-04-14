@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { redis } from "bun";
 import { db } from "../db/client";
 
 // App-owned tables only. `flyway_schema_history` is deliberately excluded —
@@ -28,4 +29,15 @@ export async function resetDb(): Promise<void> {
   await db.execute(
     sql.raw(`TRUNCATE ${APP_TABLES.join(", ")} RESTART IDENTITY CASCADE`),
   );
+}
+
+/**
+ * Clears all `visitors:*` keys from Redis. Call in beforeEach alongside
+ * resetDb() for tests that touch the visitor counter.
+ */
+export async function resetRedis(): Promise<void> {
+  const keys = await redis.keys("visitors:*");
+  if (keys && keys.length > 0) {
+    await redis.del(...keys);
+  }
 }
