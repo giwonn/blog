@@ -1,8 +1,16 @@
 import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
+import path from "node:path";
+import { mkdir, writeFile, rm, stat } from "node:fs/promises";
 import { SignJWT } from "jose";
 import { createApp } from "../src/app";
 import { env, db, schema } from "@api-next/core";
 import { resetDb } from "@api-next/core/test-helpers";
+import { resetEnvCache } from "@api-next/core/env";
+
+const IMG_ROOT_ARTICLES = path.join(process.cwd(), "storage-articles-test");
+process.env.IMAGE_STORAGE_PATH = IMG_ROOT_ARTICLES;
+process.env.IMAGE_PUBLIC_URL = "http://localhost:8081/images";
+resetEnvCache();
 
 const secret = new TextEncoder().encode(env.ADMIN_JWT_SECRET);
 
@@ -307,5 +315,126 @@ describe("admin articles endpoints", () => {
     expect(put.status).toBe(401);
     const del = await app.request("/admin/articles/1", { method: "DELETE" });
     expect(del.status).toBe(401);
+  });
+
+  // --- Plan J: image integration ---
+  const IMG_ROOT = IMG_ROOT_ARTICLES;
+
+  async function seedTempImage(): Promise<string> {
+    await mkdir(path.join(IMG_ROOT, "temp"), { recursive: true });
+    const id = crypto.randomUUID();
+    const filename = `${id}.png`;
+    await writeFile(path.join(IMG_ROOT, "temp", filename), new Uint8Array([0x89, 0x50, 0x4e, 0x47]));
+    return `http://localhost:8081/images/temp/${filename}`;
+  }
+
+  async function fileExists(url: string): Promise<boolean> {
+    const rel = url.replace("http://localhost:8081/images/", "");
+    try {
+      await stat(path.join(IMG_ROOT, rel));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  it("POST article with temp image moves file and rewrites URL", async () => {
+    await rm(IMG_ROOT, { recursive: true, force: true });
+    const tempUrl = await seedTempImage();
+    const res = await app.request("/admin/articles", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        title: "With image",
+        slug: "with-image",
+        content: `![alt](${tempUrl})`,
+        status: "PUBLIC",
+        password: null,
+        seriesId: null,
+        orderInSeries: null,
+        bookId: null,
+        orderInBook: null,
+      }),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { data: { id: number; content: string } };
+    expect(body.data.content).not.toContain("/temp/");
+    expect(body.data.content).toContain(`/articles/${body.data.id}/`);
+    const permUrl = body.data.content.match(/\((https?:[^)]+)\)/)![1]!;
+    expect(await fileExists(permUrl)).toBe(true);
+    expect(await fileExists(tempUrl)).toBe(false);
+  });
+
+  it("PUT article removing an image deletes the old file", async () => {
+    await rm(IMG_ROOT, { recursive: true, force: true });
+    const tempUrl = await seedTempImage();
+    const createRes = await app.request("/admin/articles", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        title: "Remove",
+        slug: "remove-img",
+        content: `before ![a](${tempUrl}) after`,
+        status: "PUBLIC",
+        password: null,
+        seriesId: null,
+        orderInSeries: null,
+        bookId: null,
+        orderInBook: null,
+      }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as { data: { id: number; content: string } };
+    const permUrl = created.data.content.match(/\((https?:[^)]+)\)/)![1]!;
+    expect(await fileExists(permUrl)).toBe(true);
+
+    const putRes = await app.request(`/admin/articles/${created.data.id}`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        title: "Remove",
+        slug: "remove-img",
+        content: "no image anymore",
+        status: "PUBLIC",
+        password: null,
+        seriesId: null,
+        orderInSeries: null,
+        bookId: null,
+        orderInBook: null,
+      }),
+    });
+    expect(putRes.status).toBe(200);
+    expect(await fileExists(permUrl)).toBe(false);
+  });
+
+  it("DELETE article removes all its images from disk", async () => {
+    await rm(IMG_ROOT, { recursive: true, force: true });
+    const tempUrl = await seedTempImage();
+    const createRes = await app.request("/admin/articles", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        title: "Delete",
+        slug: "delete-img",
+        content: `![a](${tempUrl})`,
+        status: "PUBLIC",
+        password: null,
+        seriesId: null,
+        orderInSeries: null,
+        bookId: null,
+        orderInBook: null,
+      }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as { data: { id: number; content: string } };
+    const permUrl = created.data.content.match(/\((https?:[^)]+)\)/)![1]!;
+    expect(await fileExists(permUrl)).toBe(true);
+
+    const delRes = await app.request(`/admin/articles/${created.data.id}`, {
+      method: "DELETE",
+      headers: authHeaders(token),
+    });
+    expect(delRes.status).toBe(204);
+    expect(await fileExists(permUrl)).toBe(false);
   });
 });
