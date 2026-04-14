@@ -3,6 +3,11 @@ import * as repo from "./repo";
 import type { Article, ArticleNeighbors, ArticleRequest, ArticleFilter } from "./types";
 import { VISIBLE_STATUSES } from "./types";
 import type { Page } from "../../pagination";
+import {
+  imageProcessNewImages,
+  imageCleanupDeletedImages,
+  imageCleanupAllImages,
+} from "../image";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -85,7 +90,12 @@ export async function create(req: ArticleRequest): Promise<Article> {
   }
   const now = nowIso();
   const publishedAt = isVisible(req.status) ? now : null;
-  return await repo.insert(req, publishedAt, now);
+  const saved = await repo.insert(req, publishedAt, now);
+  const processedContent = await imageProcessNewImages(saved.content, saved.id);
+  if (processedContent !== saved.content) {
+    return await repo.update(saved.id, { ...req, content: processedContent }, publishedAt, now);
+  }
+  return saved;
 }
 
 export async function update(id: number, req: ArticleRequest): Promise<Article> {
@@ -96,20 +106,21 @@ export async function update(id: number, req: ArticleRequest): Promise<Article> 
       throw BusinessError.from("ARTICLE_SLUG_DUPLICATE");
     }
   }
+  const processedContent = await imageProcessNewImages(req.content, id);
+  await imageCleanupDeletedImages(existing.content, processedContent);
   const now = nowIso();
-  // publishedAt auto-set: DRAFT/PRIVATE → PUBLIC/LOCKED transition with
-  // existing.publishedAt == null → set to now.
   let publishedAt = existing.publishedAt;
   const wasNotVisible = !isVisible(existing.status);
   const willBeVisible = isVisible(req.status);
   if (wasNotVisible && willBeVisible && publishedAt === null) {
     publishedAt = now;
   }
-  return await repo.update(id, req, publishedAt, now);
+  return await repo.update(id, { ...req, content: processedContent }, publishedAt, now);
 }
 
 export async function deleteArticle(id: number): Promise<void> {
   const existing = await repo.findById(id);
   if (!existing) throw BusinessError.from("ARTICLE_NOT_FOUND");
+  await imageCleanupAllImages(existing.content);
   await repo.deleteById(id);
 }
