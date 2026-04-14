@@ -13,6 +13,8 @@ const schema = z.object({
     .default("info"),
   BLOG_PORT: z.coerce.number().int().positive().default(8080),
   ADMIN_PORT: z.coerce.number().int().positive().default(8081),
+  GITHUB_OWNER: z.string().default("giwonn"),
+  GITHUB_REPO: z.string().default("giwon-blog"),
 });
 
 export type Env = z.infer<typeof schema>;
