@@ -54,13 +54,16 @@ export async function findTopPages(from: Date, to: Date): Promise<PageViewCount[
  * (direct access), mirroring Kotlin's CaseBuilder logic.
  */
 export async function findTopReferrers(from: Date, to: Date): Promise<ReferrerCount[]> {
+  const directLabel = "(직접 접속)";
   const rows = (await db.execute(sql`
-    SELECT COALESCE(pv.referrer, '(직접 접속)') AS referrer,
-           COUNT(pv.id)::bigint AS view_count
-    FROM page_views pv
-    WHERE pv.created_at >= ${from.toISOString()}::timestamp
-      AND pv.created_at < ${to.toISOString()}::timestamp
-    GROUP BY COALESCE(pv.referrer, '(직접 접속)')
+    SELECT referrer, COUNT(id)::bigint AS view_count
+    FROM (
+      SELECT COALESCE(pv.referrer, ${directLabel}) AS referrer, pv.id
+      FROM page_views pv
+      WHERE pv.created_at >= ${from.toISOString()}::timestamp
+        AND pv.created_at < ${to.toISOString()}::timestamp
+    ) sub
+    GROUP BY referrer
     ORDER BY view_count DESC
   `)) as unknown as RawRow[];
   return rows.map((r) => ({
@@ -97,13 +100,16 @@ export async function findDailyVisitors(
   tz: string,
 ): Promise<DailyVisitorCount[]> {
   const rows = (await db.execute(sql`
-    SELECT TO_CHAR(pv.created_at AT TIME ZONE ${tz}, 'YYYY-MM-DD') AS date,
-           COUNT(DISTINCT pv.session_id)::bigint AS visitor_count
-    FROM page_views pv
-    WHERE pv.created_at >= ${from.toISOString()}::timestamp
-      AND pv.created_at < ${to.toISOString()}::timestamp
-      AND pv.session_id IS NOT NULL
-    GROUP BY TO_CHAR(pv.created_at AT TIME ZONE ${tz}, 'YYYY-MM-DD')
+    SELECT date, COUNT(DISTINCT session_id)::bigint AS visitor_count
+    FROM (
+      SELECT TO_CHAR(pv.created_at AT TIME ZONE ${tz}, 'YYYY-MM-DD') AS date,
+             pv.session_id
+      FROM page_views pv
+      WHERE pv.created_at >= ${from.toISOString()}::timestamp
+        AND pv.created_at < ${to.toISOString()}::timestamp
+        AND pv.session_id IS NOT NULL
+    ) sub
+    GROUP BY date
     ORDER BY date ASC
   `)) as unknown as RawRow[];
   return rows.map((r) => ({
