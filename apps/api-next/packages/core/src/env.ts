@@ -15,6 +15,7 @@ const schema = z.object({
   ADMIN_PORT: z.coerce.number().int().positive().default(8081),
   GITHUB_OWNER: z.string().default("giwonn"),
   GITHUB_REPO: z.string().default("giwon-blog"),
+  REDIS_URL: z.string().default("redis://localhost:6380"),
 });
 
 export type Env = z.infer<typeof schema>;
