@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import path from "node:path";
+import { env } from "@api-next/core";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/requestLogger";
 import { jwtAuth } from "./middleware/jwtAuth";
@@ -10,6 +12,7 @@ import { seriesAdminRoute } from "./routes/series";
 import { articlesAdminRoute } from "./routes/articles";
 import { dashboardRoute } from "./routes/dashboard";
 import { analyticsRoute } from "./routes/analytics";
+import { imagesAdminRoute } from "./routes/images";
 
 export function createApp() {
   const app = new Hono();
@@ -23,6 +26,20 @@ export function createApp() {
   app.route("/admin/articles", articlesAdminRoute);
   app.route("/admin/dashboard", dashboardRoute);
   app.route("/admin/analytics", analyticsRoute);
+  app.route("/admin/images", imagesAdminRoute);
+  app.get("/images/*", async (c) => {
+    const rel = c.req.path.slice("/images/".length);
+    if (rel.length === 0 || rel.split("/").includes("..") || rel.includes("\0")) {
+      return c.notFound();
+    }
+    const storagePath = process.env.IMAGE_STORAGE_PATH ?? env.IMAGE_STORAGE_PATH;
+    const full = path.join(storagePath, rel);
+    const file = Bun.file(full);
+    if (!(await file.exists())) {
+      return c.notFound();
+    }
+    return new Response(file);
+  });
   app.onError(errorHandler);
   return app;
 }
