@@ -7,6 +7,7 @@ import { booksRoute } from "./routes/books";
 import { seriesRoute } from "./routes/series";
 import { articlesRoute } from "./routes/articles";
 import { analyticsTrackRoute } from "./routes/analytics";
+import { sidebarRoute } from "./routes/sidebar";
 
 export function createApp() {
   const app = new Hono();
@@ -17,6 +18,7 @@ export function createApp() {
   app.route("/series", seriesRoute);
   app.route("/articles", articlesRoute);
   app.route("/analytics", analyticsTrackRoute);
+  app.route("/sidebar", sidebarRoute);
   app.onError(errorHandler);
   return app;
 }
