@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type PopularArticle = {
   id: number;
   title: string;
@@ -58,3 +60,26 @@ export type AnalyticsOverview = {
   totalPageViews: number;
   topPages: PageViewCount[];
 };
+
+export type GeoLocation = {
+  latitude: number;
+  longitude: number;
+  country: string | null;
+  city: string | null;
+};
+
+export type VisitorSummary = {
+  total: number;
+  today: number;
+  yesterday: number;
+};
+
+export const PageViewRequestSchema = z.object({
+  path: z.string().min(1),
+  ipAddress: z.string().min(1),
+  userAgent: z.string().nullable().optional(),
+  referrer: z.string().nullable().optional(),
+  sessionId: z.string().nullable().optional(),
+});
+
+export type PageViewInput = z.infer<typeof PageViewRequestSchema>;
