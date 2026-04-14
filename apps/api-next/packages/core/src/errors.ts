@@ -14,6 +14,8 @@ export const ErrorCode = {
   ARTICLE_PASSWORD_REQUIRED: { status: 403, message: "비밀번호가 필요한 게시글입니다" },
   ARTICLE_PASSWORD_INCORRECT: { status: 403, message: "비밀번호가 올바르지 않습니다" },
   ARTICLE_SLUG_DUPLICATE: { status: 400, message: "이미 사용 중인 slug입니다" },
+  INVALID_IMAGE_TYPE: { status: 400, message: "지원하지 않는 이미지 형식입니다" },
+  IMAGE_TOO_LARGE: { status: 400, message: "이미지 크기가 10MB를 초과합니다" },
 } as const satisfies Record<string, ErrorCodeValue>;
 
 export type ErrorCodeKey = keyof typeof ErrorCode;

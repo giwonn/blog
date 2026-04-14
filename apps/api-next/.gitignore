@@ -12,3 +12,5 @@ dist/
 
 # Drizzle-kit introspect staging (schema.ts is copied to src/db/ and IS committed)
 packages/core/drizzle/
+
+storage/

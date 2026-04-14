@@ -16,6 +16,8 @@ const schema = z.object({
   GITHUB_OWNER: z.string().default("giwonn"),
   GITHUB_REPO: z.string().default("giwon-blog"),
   REDIS_URL: z.string().default("redis://localhost:6380"),
+  IMAGE_STORAGE_PATH: z.string().default("./storage/images"),
+  IMAGE_PUBLIC_URL: z.string().default("http://localhost:8081/images"),
 });
 
 export type Env = z.infer<typeof schema>;
