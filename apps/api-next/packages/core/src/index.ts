@@ -65,5 +65,34 @@ export {
 } from "./domains/articles";
 
 export { type Page, makePage } from "./pagination";
-export { type PopularArticle } from "./domains/analytics";
+export {
+  type PopularArticle,
+  type PageViewCount,
+  type ReferrerCount,
+  type DailyPageViewCount,
+  type DailyVisitorCount,
+  type VisitorCount,
+  type VisitorLocation,
+  type IpAccessHistory,
+  type ArticleAccessHistory,
+  type AnalyticsOverview,
+  analyticsFindTopPages,
+  analyticsFindTopReferrers,
+  analyticsFindDailyPageViews,
+  analyticsFindDailyVisitors,
+  analyticsCountDistinctSessions,
+  analyticsFindVisitorLocations,
+  analyticsFindIpAccessHistory,
+  analyticsFindArticleAccessHistory,
+  analyticsGetTotalVisitorCount,
+  analyticsGetVisitorCountByDate,
+  analyticsGetOverview,
+  analyticsGetTopPages,
+  analyticsGetTopReferrers,
+  analyticsGetDailyPageViews,
+  analyticsGetDailyVisitors,
+  analyticsGetVisitorLocations,
+  analyticsGetIpAccessHistory,
+  analyticsGetArticleAccessHistory,
+} from "./domains/analytics";
 export { toUtcDateRange } from "./timezone";
