@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, afterAll } from "bun:test";
 import { createApp } from "../src/app";
-import { db, schema } from "@api-next/core";
+import { db, schema, sql } from "@api-next/core";
 import { resetDb, resetRedis } from "@api-next/core/test-helpers";
 
 async function countPageViews(): Promise<number> {
   const rows = (await db.execute(
-    (await import("drizzle-orm")).sql`SELECT COUNT(*)::int AS n FROM page_views`,
+    sql`SELECT COUNT(*)::int AS n FROM page_views`,
   )) as unknown as { n: number }[];
   return Number(rows[0]?.n ?? 0);
 }
 
 async function getSession(sessionId: string) {
   const rows = (await db.execute(
-    (await import("drizzle-orm")).sql`
+    sql`
       SELECT session_id, ip_address, page_view_count
       FROM visitor_sessions
       WHERE session_id = ${sessionId}
