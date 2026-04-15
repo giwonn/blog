@@ -212,3 +212,17 @@ Auth note: All Kotlin admin endpoints require a valid JWT via Spring Security ap
 
 **Go/no-go for Task 3 gap remediation:**
 0 breaking gaps across blog and admin → **skip Task 3, proceed directly to Task 4** (Drizzle baseline migration).
+
+---
+
+## K1 Close-out
+
+- **Audit completed:** 2026-04-15
+- **Gaps found:** 0 breaking (❌), 4 minor behavioral diffs (⚠) — none block cutover
+- **Gaps fixed:** none needed
+- **Baseline migration:** `0000_baseline.sql` + runbook committed (`baef4f0`); captured hash `7b3255d657ce5f687bddd7b68a0dfae797854ba8c2ac4c03fe6820560fcf0f68` from local dry-run
+- **Dead table drop migration:** `0001_drop_dead_tables.sql` committed (`5695ca1`) — drops `article_stats` and `daily_article_stats`
+- **Tests:** blog 38/38, admin 92/92, admin Next.js 15/15, core 30/33 (3 flaky failures — 2 GitHub rate limit, 1 Redis TTL state — all pre-date K1, unrelated to any K1 change)
+- **Lint:** 5/5 clean (0 errors; 2 pre-existing warnings in `apps/admin/src/components/analytics/VisitorMap.tsx`)
+- **drizzle-kit migrate end-to-end verified** against a throwaway local DB: baseline + 0001 apply cleanly, `article_stats` and `daily_article_stats` dropped, 9 remaining tables match expectations
+- **Go/no-go for K2:** GO ✅
