@@ -27,8 +27,10 @@ Plan K2 is the single most dangerous phase of the rewrite. Every task that touch
 apps/api-next/
 ├── Dockerfile.api-blog                    # multi-stage Bun build for blog
 ├── Dockerfile.api-admin                   # same shape, port 8081
-├── docker-compose.yml                     # hono backends, blue/green
-└── .env.example                           # prod env template (gitignored real .env)
+├── docker-compose.prod.yml                # hono backends, blue/green (PROD only)
+├── .env.example.prod                      # prod env template (for docker-compose.prod.yml)
+└── .env.example                           # dev env template (for local bun test / drizzle)
+# NOTE: docker-compose.yml stays as the DEV compose (api-next-dev-db + api-next-dev-redis)
 
 infra/
 ├── nginx/
@@ -158,15 +160,18 @@ tsc --noEmit acts as a typecheck gate inside the build image."
 
 ---
 
-## Task 2: `apps/api-next/docker-compose.yml` + `.env.example`
+## Task 2: `apps/api-next/docker-compose.prod.yml` + `.env.example` + `.env.example.prod`
+
+> **Note:** The dev compose at `apps/api-next/docker-compose.yml` stays unchanged — it defines the local `api-next-dev-db` (postgres:5433) and `api-next-dev-redis` (redis:6380) containers used by `bun test` and drizzle dry-runs. The prod compose is a NEW separate file at `apps/api-next/docker-compose.prod.yml`.
 
 **Files:**
-- Create: `apps/api-next/docker-compose.yml`
-- Create: `apps/api-next/.env.example`
+- Create: `apps/api-next/docker-compose.prod.yml` (NEW — prod Hono backends, blue/green)
+- Update: `apps/api-next/.env.example` (restore dev-focused template)
+- Create: `apps/api-next/.env.example.prod` (prod env template for docker-compose.prod.yml)
 
-- [ ] **Step 1: Write the compose file**
+- [ ] **Step 1: Write the prod compose file**
 
-Write the exact content from the design spec's section 2 (`apps/api-next/docker-compose.yml`) into that path. Key details:
+Write the exact content from the design spec's section 2 into `apps/api-next/docker-compose.prod.yml` (NOT docker-compose.yml). Key details:
 - `name: giwon-blog-api-next`
 - Two anchors: `x-api-blog` and `x-api-admin`
 - Four services: `api-blog-next-blue`, `api-blog-next-green` (profile), `api-admin-next-blue`, `api-admin-next-green` (profile)
@@ -176,19 +181,26 @@ Write the exact content from the design spec's section 2 (`apps/api-next/docker-
 
 Use `${DB_PASSWORD}`, `${ADMIN_JWT_SECRET}`, `${ADMIN_GOOGLE_SUB}` env interpolation — docker compose will read them from a sibling `.env` file at runtime.
 
-- [ ] **Step 2: Write `.env.example`**
+- [ ] **Step 2: Write `.env.example` (dev template) and `.env.example.prod` (prod template)**
 
+`.env.example` is the local dev template (used by `bun test`, drizzle dry-runs):
 ```
-# Copy to .env on the production server and fill in real values.
-# .env is gitignored; only .env.example ships in git.
+# Copy to apps/api-next/.env and fill in real values for local development.
+# For local dev, first run: (cd apps/api-next && docker compose up -d postgres)
+# That brings up a dedicated Postgres at localhost:5433 for api-next.
 
-# Postgres
+DATABASE_URL=postgresql://api_next:api_next_dev_pwd@localhost:5433/api_next_dev
+ADMIN_JWT_SECRET=CHANGE_ME_at_least_32_characters_long_secret
+ADMIN_GOOGLE_SUB=your-google-sub-here
+...
+```
+
+`.env.example.prod` is the production template (used by `docker-compose.prod.yml`):
+```
+# Used by docker-compose.prod.yml on the production server. Copy to .env when deploying.
+
 DB_PASSWORD=<prod-db-password>
-
-# Admin JWT signing (HS256, at least 32 chars)
 ADMIN_JWT_SECRET=<random-hex-48-chars-or-more>
-
-# Comma-separated Google OAuth subject IDs that are allowed to log in as admin
 ADMIN_GOOGLE_SUB=<sub1>,<sub2>
 ```
 
@@ -204,30 +216,35 @@ If missing, add `.env` to `apps/api-next/.gitignore`.
 
 ```bash
 cd ~/github/new-blog/apps/api-next
-# Temporary .env for the validation step only
-cat > .env <<EOF
-DB_PASSWORD=placeholder
-ADMIN_JWT_SECRET=$(openssl rand -hex 32)
-ADMIN_GOOGLE_SUB=placeholder
-EOF
+# Dev compose (no env vars needed)
 docker compose config > /dev/null
-echo "exit=$?"
-rm .env
+echo "dev exit=$?"
+
+# Prod compose (needs dummy env vars for interpolation)
+cat > /tmp/k2-validate.env <<EOF
+DB_PASSWORD=x
+ADMIN_JWT_SECRET=$(openssl rand -hex 32)
+ADMIN_GOOGLE_SUB=x
+EOF
+docker compose -f docker-compose.prod.yml --env-file /tmp/k2-validate.env config > /dev/null
+echo "prod exit=$?"
+rm /tmp/k2-validate.env
 ```
 
-`docker compose config` resolves all variables and validates syntax. Must exit 0. If it errors, fix the compose file — do not create a real `.env` for validation.
+Both must exit 0. If errors, fix the compose file.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 cd ~/github/new-blog
-git add apps/api-next/docker-compose.yml apps/api-next/.env.example apps/api-next/.gitignore
+git add apps/api-next/docker-compose.prod.yml apps/api-next/.env.example apps/api-next/.env.example.prod apps/api-next/.gitignore
 git commit -m "feat(api-next): add production docker-compose + env template
 
-Four services with blue/green profiles, sharing the external
-blog-network and blog-images volume with the Kotlin stack.
+Four services with blue/green profiles in docker-compose.prod.yml,
+sharing the external blog-network and blog-images volume with the
+Kotlin stack. Dev compose (docker-compose.yml) remains unchanged.
 Sensitive values read from a sibling .env (gitignored); the
-committed .env.example documents the keys."
+committed .env.example.prod documents the prod keys."
 ```
 
 ---
@@ -405,7 +422,7 @@ resolve to the new reverse-proxy after K2 cutover."
 - [ ] **Step 1: Write `deploy-api-next.sh`**
 
 Near-verbatim copy of `apps/api/scripts/deploy.sh`, adapted for the new service names. Key changes from the template in the spec:
-- `COMPOSE="apps/api-next/docker-compose.yml"`
+- `COMPOSE="apps/api-next/docker-compose.prod.yml"`
 - `NGINX_CONF="infra/nginx/default.conf"`
 - Service names: `api-blog-next-blue/green`, `api-admin-next-blue/green`
 - Reverse-proxy container: `giwon-blog-reverse-proxy`
@@ -436,7 +453,7 @@ If the healthchecks aren't defined on the frontend compose (they weren't in the 
 set -e
 
 echo "[rollback] stopping the Hono + reverse-proxy stack..."
-docker compose -f apps/api-next/docker-compose.yml stop api-blog-next-blue api-admin-next-blue api-blog-next-green api-admin-next-green 2>/dev/null || true
+docker compose -f apps/api-next/docker-compose.prod.yml stop api-blog-next-blue api-admin-next-blue api-blog-next-green api-admin-next-green 2>/dev/null || true
 docker compose -f apps/blog/docker-compose.yml stop blog-blue blog-green 2>/dev/null || true
 docker compose -f apps/admin/docker-compose.yml stop admin-blue admin-green 2>/dev/null || true
 docker compose -f infra/nginx/docker-compose.yml stop reverse-proxy 2>/dev/null || true
@@ -526,20 +543,20 @@ Expected: blog 38/38, admin-next 92/92, admin 15/15. Core may show the pre-K1 fl
 
 ```bash
 cd ~/github/new-blog
-for f in apps/api-next/docker-compose.yml apps/blog/docker-compose.yml apps/admin/docker-compose.yml infra/nginx/docker-compose.yml apps/api/docker-compose.yml; do
+for f in apps/api-next/docker-compose.yml apps/api-next/docker-compose.prod.yml apps/blog/docker-compose.yml apps/admin/docker-compose.yml infra/nginx/docker-compose.yml apps/api/docker-compose.yml; do
   echo "=== $f ==="
   dir=$(dirname "$f")
   file=$(basename "$f")
-  if [ "$dir" = "apps/api-next" ]; then
-    # Needs a dummy .env to interpolate, but validating doesn't need real secrets
-    (cd "$dir" && DB_PASSWORD=x ADMIN_JWT_SECRET=$(openssl rand -hex 32) ADMIN_GOOGLE_SUB=x docker compose config > /dev/null)
+  if [ "$file" = "docker-compose.prod.yml" ] && [ "$dir" = "apps/api-next" ]; then
+    # Prod compose needs dummy env vars to interpolate
+    (cd "$dir" && DB_PASSWORD=x ADMIN_JWT_SECRET=$(openssl rand -hex 32) ADMIN_GOOGLE_SUB=x docker compose -f "$file" config > /dev/null)
   else
-    (cd "$dir" && docker compose config > /dev/null)
+    (cd "$dir" && docker compose -f "$file" config > /dev/null)
   fi
   echo "exit=$?"
 done
 ```
-All five must exit 0.
+All six must exit 0. The dev compose (`docker-compose.yml`) and prod compose (`docker-compose.prod.yml`) are validated separately.
 
 - [ ] **Step 4: Report Phase 1 summary**
 
@@ -646,14 +663,14 @@ On the server:
 
 1. Build Hono images
    cd <monorepo-path>
-   docker compose -f apps/api-next/docker-compose.yml build api-blog-next-blue api-admin-next-blue
+   docker compose -f apps/api-next/docker-compose.prod.yml build api-blog-next-blue api-admin-next-blue
 
    Expected: two builds succeed in a few minutes. First build pulls
    oven/bun:1.3.12-alpine (~70MB). If tsc typecheck fails inside the
    build, STOP and report — we need to fix the code before cutover.
 
 2. Start the containers
-   docker compose -f apps/api-next/docker-compose.yml up -d api-blog-next-blue api-admin-next-blue
+   docker compose -f apps/api-next/docker-compose.prod.yml up -d api-blog-next-blue api-admin-next-blue
 
 3. Wait for health
    for i in $(seq 1 30); do
@@ -838,7 +855,7 @@ about the flip.
    docker logs api-admin-next-blue --tail 100 | grep -iE '(error|fail|panic)' || echo "clean"
 
 ROLLBACK: still trivial at this point — just stop the Hono containers.
-  docker compose -f apps/api-next/docker-compose.yml stop api-blog-next-blue api-admin-next-blue
+  docker compose -f apps/api-next/docker-compose.prod.yml stop api-blog-next-blue api-admin-next-blue
   Kotlin is still the only thing serving traffic.
 
 ═══════════════════════════════════════════════════════════════

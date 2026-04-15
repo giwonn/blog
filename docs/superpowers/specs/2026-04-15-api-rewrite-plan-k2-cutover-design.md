@@ -125,9 +125,11 @@ Build context is the **monorepo root** (`~/github/new-blog`) so both apps can be
 #### Alternative rejected: pre-bundled Bun `bun build --compile`
 Bun can compile to a single binary. Advantages: small, fast start. Disadvantages: bun:sql, croner, jose, and `@api-next/core` cross-package imports may hit quirks. Skip for now; runtime Bun image is well understood.
 
-### 2. `apps/api-next/docker-compose.yml`
+### 2. `apps/api-next/docker-compose.prod.yml`
 
-New file. Defines the four Hono backend services (blue + green variants of each API) and the `blog-network` external reference. Mirrors the shape of `apps/api/docker-compose.yml`:
+New file (production only). The dev compose (`apps/api-next/docker-compose.yml`) already exists and defines the local `api-next-dev-db` (postgres:5433) and `api-next-dev-redis` (redis:6380) containers used by `bun test` and drizzle dry-runs — it must not be replaced. The prod compose is a separate file.
+
+Defines the four Hono backend services (blue + green variants of each API) and the `blog-network` external reference. Mirrors the shape of `apps/api/docker-compose.yml`:
 
 ```yaml
 name: giwon-blog-api-next
@@ -330,7 +332,7 @@ Both `apps/blog/docker-compose.yml` and `apps/admin/docker-compose.yml` are modi
 ```bash
 #!/bin/bash
 set -e
-COMPOSE="apps/api-next/docker-compose.yml"
+COMPOSE="apps/api-next/docker-compose.prod.yml"
 NGINX_CONF="infra/nginx/default.conf"
 # Detect current blue/green for api-next
 if docker ps --format '{{.Names}}' | grep -q "api-blog-next-blue"; then
@@ -375,8 +377,8 @@ Phases:
    - Verify `.env` file exists in `apps/api-next/` with prod creds filled in (DB_PASSWORD, ADMIN_JWT_SECRET, ADMIN_GOOGLE_SUB)
    - `docker network ls | grep blog-network` — must exist
 2. **Bring up Hono backends alongside Kotlin**
-   - `docker compose -f apps/api-next/docker-compose.yml build api-blog-next-blue api-admin-next-blue`
-   - `docker compose -f apps/api-next/docker-compose.yml up -d api-blog-next-blue api-admin-next-blue`
+   - `docker compose -f apps/api-next/docker-compose.prod.yml build api-blog-next-blue api-admin-next-blue`
+   - `docker compose -f apps/api-next/docker-compose.prod.yml up -d api-blog-next-blue api-admin-next-blue`
    - Wait for healthchecks
    - `curl` Hono containers directly via `docker exec` against `api-blog-next-blue:8080/health` and `api-admin-next-blue:8081/health`
    - **Do not touch nginx yet.** Kotlin is still serving traffic.
@@ -435,8 +437,9 @@ That said, Plan K2's runbook explicitly notes that during the K2 window, pushing
 ## K2 Deliverables
 
 1. `apps/api-next/Dockerfile.api-blog` and `Dockerfile.api-admin` (new, multi-stage Bun)
-2. `apps/api-next/docker-compose.yml` (new)
-3. `apps/api-next/.env.example` (new, documents required prod env vars)
+2. `apps/api-next/docker-compose.prod.yml` (new, prod Hono backends; dev compose stays at docker-compose.yml)
+3. `apps/api-next/.env.example` (dev template; unchanged from pre-K2)
+3b. `apps/api-next/.env.example.prod` (new, documents required prod env vars for docker-compose.prod.yml)
 4. `infra/nginx/default.conf` (new)
 5. `infra/nginx/docker-compose.yml` (new)
 6. `infra/scripts/deploy-api-next.sh` (new)

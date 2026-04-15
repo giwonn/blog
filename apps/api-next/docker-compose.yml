@@ -1,84 +1,31 @@
-name: giwon-blog-api-next
-
-x-api-blog: &api-blog-common
-  build:
-    context: ../../
-    dockerfile: apps/api-next/Dockerfile.api-blog
-  restart: unless-stopped
-  expose:
-    - "8080"
-  networks:
-    - blog-network
-  environment:
-    DATABASE_URL: postgresql://giwon:${DB_PASSWORD}@giwon-blog-db:5432/giwon_blog
-    REDIS_URL: redis://giwon-blog-redis:6379
-    ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
-    ADMIN_GOOGLE_SUB: ${ADMIN_GOOGLE_SUB}
-    IMAGE_STORAGE_PATH: /data/blog/images
-    IMAGE_PUBLIC_URL: http://giwon-blog-api-blog:8080/images
-    NODE_ENV: production
-    LOG_LEVEL: info
-    BLOG_PORT: "8080"
-    ADMIN_PORT: "8081"
-  volumes:
-    - blog-images:/data/blog/images
-  healthcheck:
-    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
-    interval: 10s
-    timeout: 5s
-    retries: 3
-
-x-api-admin: &api-admin-common
-  build:
-    context: ../../
-    dockerfile: apps/api-next/Dockerfile.api-admin
-  restart: unless-stopped
-  expose:
-    - "8081"
-  networks:
-    - blog-network
-  environment:
-    DATABASE_URL: postgresql://giwon:${DB_PASSWORD}@giwon-blog-db:5432/giwon_blog
-    REDIS_URL: redis://giwon-blog-redis:6379
-    ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
-    ADMIN_GOOGLE_SUB: ${ADMIN_GOOGLE_SUB}
-    IMAGE_STORAGE_PATH: /data/blog/images
-    IMAGE_PUBLIC_URL: http://giwon-blog-api-blog:8080/images
-    NODE_ENV: production
-    LOG_LEVEL: info
-    BLOG_PORT: "8080"
-    ADMIN_PORT: "8081"
-  volumes:
-    - blog-images:/data/blog/images
-  healthcheck:
-    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
-    interval: 10s
-    timeout: 5s
-    retries: 3
-
 services:
-  api-blog-next-blue:
-    <<: *api-blog-common
-    container_name: api-blog-next-blue
+  postgres:
+    image: postgres:17
+    container_name: api-next-dev-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: api_next_dev
+      POSTGRES_USER: api_next
+      POSTGRES_PASSWORD: api_next_dev_pwd
+    volumes:
+      - api-next-dev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api_next -d api_next_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  api-blog-next-green:
-    <<: *api-blog-common
-    container_name: api-blog-next-green
-    profiles: ["green"]
-
-  api-admin-next-blue:
-    <<: *api-admin-common
-    container_name: api-admin-next-blue
-
-  api-admin-next-green:
-    <<: *api-admin-common
-    container_name: api-admin-next-green
-    profiles: ["green"]
-
-networks:
-  blog-network:
-    external: true
+  redis:
+    image: redis:7-alpine
+    container_name: api-next-dev-redis
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
-  blog-images:
-    external: true
+  api-next-dev-db:
