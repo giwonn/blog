@@ -78,3 +78,4 @@ networks:
 volumes:
   blog-images:
     external: true
+    name: giwon-blog-api_blog-images  # created by apps/api/docker-compose.yml; reuse the same volume so K2 inherits existing image data
