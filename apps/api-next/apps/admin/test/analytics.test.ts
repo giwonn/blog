@@ -1,23 +1,7 @@
-import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
-import { SignJWT } from "jose";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { createApp } from "../src/app";
-import { env, db, schema } from "@api-next/core";
+import { db, schema } from "@api-next/core";
 import { resetDb } from "@api-next/core/test-helpers";
-
-const secret = new TextEncoder().encode(env.ADMIN_JWT_SECRET);
-
-async function mintValidToken() {
-  return await new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(env.ADMIN_GOOGLE_SUB[0]!)
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(Date.now() / 1000) + 300)
-    .sign(secret);
-}
-
-function authHeaders(token: string): Record<string, string> {
-  return { authorization: `Bearer ${token}`, "content-type": "application/json" };
-}
 
 async function seedArticle(title: string) {
   const now = new Date().toISOString();
@@ -66,18 +50,12 @@ const todayQuery = `from=${today}&to=${today}&tz=UTC`;
 
 describe("admin GET /admin/analytics/overview", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
 
   it("empty returns zeros", async () => {
-    const res = await app.request(`/admin/analytics/overview?${todayQuery}`, {
-      headers: authHeaders(token),
-    });
+    const res = await app.request(`/admin/analytics/overview?${todayQuery}`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { totalPageViews: number; topPages: unknown[] } };
     expect(body.data.totalPageViews).toBe(0);
@@ -88,9 +66,7 @@ describe("admin GET /admin/analytics/overview", () => {
     const id = await seedArticle("Hello");
     await seedPageView({ path: `/articles/${id}` });
     await seedPageView({ path: `/articles/${id}` });
-    const res = await app.request(`/admin/analytics/overview?${todayQuery}`, {
-      headers: authHeaders(token),
-    });
+    const res = await app.request(`/admin/analytics/overview?${todayQuery}`);
     const body = (await res.json()) as { data: { totalPageViews: number; topPages: { articleId: number; viewCount: number }[] } };
     expect(body.data.totalPageViews).toBe(2);
     expect(body.data.topPages[0]?.articleId).toBe(id);
@@ -100,10 +76,6 @@ describe("admin GET /admin/analytics/overview", () => {
 
 describe("admin GET /admin/analytics/page-views", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
@@ -117,7 +89,6 @@ describe("admin GET /admin/analytics/page-views", () => {
     const yesterday = yesterdayIso.slice(0, 10);
     const res = await app.request(
       `/admin/analytics/page-views?from=${yesterday}&to=${today}&tz=UTC`,
-      { headers: authHeaders(token) },
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { date: string; viewCount: number }[] };
@@ -130,10 +101,6 @@ describe("admin GET /admin/analytics/page-views", () => {
 
 describe("admin GET /admin/analytics/daily-visitors", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
@@ -145,7 +112,6 @@ describe("admin GET /admin/analytics/daily-visitors", () => {
     await seedPageView({ path: `/articles/${id}`, sessionId: "s2" });
     const res = await app.request(
       `/admin/analytics/daily-visitors?${todayQuery}`,
-      { headers: authHeaders(token) },
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { date: string; visitorCount: number }[] };
@@ -155,10 +121,6 @@ describe("admin GET /admin/analytics/daily-visitors", () => {
 
 describe("admin GET /admin/analytics/top-pages", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
@@ -169,9 +131,7 @@ describe("admin GET /admin/analytics/top-pages", () => {
     await seedPageView({ path: `/articles/${a}` });
     await seedPageView({ path: `/articles/${b}` });
     await seedPageView({ path: `/articles/${b}` });
-    const res = await app.request(`/admin/analytics/top-pages?${todayQuery}`, {
-      headers: authHeaders(token),
-    });
+    const res = await app.request(`/admin/analytics/top-pages?${todayQuery}`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { articleId: number; title: string; viewCount: number }[] };
     expect(body.data[0]?.articleId).toBe(b);
@@ -182,10 +142,6 @@ describe("admin GET /admin/analytics/top-pages", () => {
 
 describe("admin GET /admin/analytics/referrers", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
@@ -194,9 +150,7 @@ describe("admin GET /admin/analytics/referrers", () => {
     const id = await seedArticle("A");
     await seedPageView({ path: `/articles/${id}`, referrer: null });
     await seedPageView({ path: `/articles/${id}`, referrer: "https://google.com" });
-    const res = await app.request(`/admin/analytics/referrers?${todayQuery}`, {
-      headers: authHeaders(token),
-    });
+    const res = await app.request(`/admin/analytics/referrers?${todayQuery}`);
     const body = (await res.json()) as { data: { referrer: string; viewCount: number }[] };
     const refs = body.data.map((r) => r.referrer);
     expect(refs).toContain("(직접 접속)");
@@ -206,10 +160,6 @@ describe("admin GET /admin/analytics/referrers", () => {
 
 describe("admin GET /admin/analytics/visitor-locations", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
@@ -235,7 +185,6 @@ describe("admin GET /admin/analytics/visitor-locations", () => {
     await seedPageView({ path: `/articles/${id}`, ip: "2.2.2.2" }); // no geo
     const res = await app.request(
       `/admin/analytics/visitor-locations?${todayQuery}`,
-      { headers: authHeaders(token) },
     );
     const body = (await res.json()) as { data: { ipAddress: string; visitCount: number }[] };
     expect(body.data).toHaveLength(1);
@@ -246,10 +195,6 @@ describe("admin GET /admin/analytics/visitor-locations", () => {
 
 describe("admin GET /admin/analytics/ip-access-history", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
@@ -261,7 +206,6 @@ describe("admin GET /admin/analytics/ip-access-history", () => {
     await seedPageView({ path: `/articles/${id}`, ip: "2.2.2.2" });
     const res = await app.request(
       `/admin/analytics/ip-access-history?ip=1.1.1.1&${todayQuery}`,
-      { headers: authHeaders(token) },
     );
     const body = (await res.json()) as { data: { path: string; ipAddress: string }[] };
     expect(body.data).toHaveLength(2);
@@ -271,10 +215,6 @@ describe("admin GET /admin/analytics/ip-access-history", () => {
 
 describe("admin GET /admin/analytics/article-access-history", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
@@ -287,44 +227,20 @@ describe("admin GET /admin/analytics/article-access-history", () => {
     await seedPageView({ path: `/articles/${b}`, ip: "1.1.1.1" });
     const res = await app.request(
       `/admin/analytics/article-access-history?articleId=${a}&${todayQuery}`,
-      { headers: authHeaders(token) },
     );
     const body = (await res.json()) as { data: { ipAddress: string }[] };
     expect(body.data).toHaveLength(2);
   });
 });
 
-describe("admin analytics validation and auth", () => {
+describe("admin analytics validation", () => {
   const app = createApp();
-  let token: string;
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
   beforeEach(async () => {
     await resetDb();
   });
 
   it("missing from/to → 400", async () => {
-    const res = await app.request("/admin/analytics/overview", {
-      headers: authHeaders(token),
-    });
+    const res = await app.request("/admin/analytics/overview");
     expect(res.status).toBe(400);
-  });
-
-  it("all endpoints 401 without JWT", async () => {
-    const endpoints = [
-      `/admin/analytics/overview?${todayQuery}`,
-      `/admin/analytics/page-views?${todayQuery}`,
-      `/admin/analytics/daily-visitors?${todayQuery}`,
-      `/admin/analytics/top-pages?${todayQuery}`,
-      `/admin/analytics/referrers?${todayQuery}`,
-      `/admin/analytics/visitor-locations?${todayQuery}`,
-      `/admin/analytics/ip-access-history?ip=1.1.1.1&${todayQuery}`,
-      `/admin/analytics/article-access-history?articleId=1&${todayQuery}`,
-    ];
-    for (const url of endpoints) {
-      const res = await app.request(url);
-      expect(res.status).toBe(401);
-    }
   });
 });

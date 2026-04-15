@@ -226,3 +226,34 @@ Auth note: All Kotlin admin endpoints require a valid JWT via Spring Security ap
 - **Lint:** 5/5 clean (0 errors; 2 pre-existing warnings in `apps/admin/src/components/analytics/VisitorMap.tsx`)
 - **drizzle-kit migrate end-to-end verified** against a throwaway local DB: baseline + 0001 apply cleanly, `article_stats` and `daily_article_stats` dropped, 9 remaining tables match expectations
 - **Go/no-go for K2:** GO ✅
+
+---
+
+## Correction (2026-04-15) — missed admin authentication gap
+
+The original audit marked all admin endpoints as ✅ or ⚠. It did not
+capture that:
+
+- **Kotlin admin has no authentication at all.** No spring-boot-starter-security,
+  no @PreAuthorize, no SecurityFilterChain. Controllers are plain
+  @RestController classes. Protection comes from network-level isolation
+  (port 8081 is `expose` only on the internal docker network, reachable
+  only via the `giwon-blog-api-admin` alias from Next.js admin).
+- **Next.js admin also has no authentication at the app level.** No
+  NextAuth, no middleware.ts, no Authorization header in apps/admin/src/lib/api.ts.
+  Archived repo giwonn/admin.giwon.dev matches: zero references to jwt,
+  next-auth, or Authorization.
+- **Hono admin (mine, added in Plan A commit b9a75ce)** had a jwtAuth
+  middleware requiring Bearer tokens — phantom feature, never wired up
+  on the Next.js side.
+
+After cutover, Next.js admin would call Hono admin without any token and
+get 401 on every request → admin broken.
+
+**Fix:** K2 removes jwtAuth from Hono admin entirely to match Kotlin's
+posture. See commit <SHA-TO-FILL> for the refactor.
+
+This is officially a ❌ breaking gap that K1's audit missed. Root cause:
+the audit compared endpoint shapes (method, path, request/response) but
+did not compare security surface. Future audits should include an
+explicit "auth required?" column.

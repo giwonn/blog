@@ -1,23 +1,7 @@
-import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
-import { SignJWT } from "jose";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { createApp } from "../src/app";
-import { env, db, schema } from "@api-next/core";
+import { db, schema } from "@api-next/core";
 import { resetDb } from "@api-next/core/test-helpers";
-
-const secret = new TextEncoder().encode(env.ADMIN_JWT_SECRET);
-
-async function mintValidToken() {
-  return await new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(env.ADMIN_GOOGLE_SUB[0]!)
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(Date.now() / 1000) + 300)
-    .sign(secret);
-}
-
-function authHeaders(token: string): Record<string, string> {
-  return { authorization: `Bearer ${token}`, "content-type": "application/json" };
-}
 
 type PopularArticleResponse = {
   id: number;
@@ -62,20 +46,13 @@ async function seedPageView(path: string, daysAgo = 0) {
 
 describe("admin GET /admin/dashboard/popular-articles", () => {
   const app = createApp();
-  let token: string;
-
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
 
   beforeEach(async () => {
     await resetDb();
   });
 
   it("empty page_views returns empty list", async () => {
-    const res = await app.request("/admin/dashboard/popular-articles", {
-      headers: authHeaders(token),
-    });
+    const res = await app.request("/admin/dashboard/popular-articles");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ data: [] });
   });
@@ -91,9 +68,7 @@ describe("admin GET /admin/dashboard/popular-articles", () => {
     await seedPageView(`/articles/${id1}`);
     await seedPageView(`/articles/${id1}`);
     await seedPageView(`/articles/${id3}`);
-    const res = await app.request("/admin/dashboard/popular-articles", {
-      headers: authHeaders(token),
-    });
+    const res = await app.request("/admin/dashboard/popular-articles");
     expect(res.status).toBe(200);
     const body = (await res.json()) as ListEnvelope;
     expect(body.data).toHaveLength(3);
@@ -108,9 +83,7 @@ describe("admin GET /admin/dashboard/popular-articles", () => {
   it("excludes page_views older than 30 days", async () => {
     const id = await seedArticle("Old");
     await seedPageView(`/articles/${id}`, 31);
-    const res = await app.request("/admin/dashboard/popular-articles", {
-      headers: authHeaders(token),
-    });
+    const res = await app.request("/admin/dashboard/popular-articles");
     const body = (await res.json()) as ListEnvelope;
     expect(body.data).toEqual([]);
   });
@@ -120,17 +93,12 @@ describe("admin GET /admin/dashboard/popular-articles", () => {
     await seedPageView(`/articles/${id}`);
     await seedPageView("/about");
     await seedPageView("/series/some");
-    const res = await app.request("/admin/dashboard/popular-articles", {
-      headers: authHeaders(token),
-    });
+    const res = await app.request("/admin/dashboard/popular-articles");
     const body = (await res.json()) as ListEnvelope;
     expect(body.data).toHaveLength(1);
     expect(body.data[0]?.id).toBe(id);
     expect(body.data[0]?.viewCount).toBe(1);
   });
 
-  it("returns 401 without JWT", async () => {
-    const res = await app.request("/admin/dashboard/popular-articles");
-    expect(res.status).toBe(401);
-  });
 });
+

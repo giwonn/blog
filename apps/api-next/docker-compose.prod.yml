@@ -12,8 +12,6 @@ x-api-blog: &api-blog-common
   environment:
     DATABASE_URL: postgresql://giwon:giwon1234@giwon-blog-db:5432/giwon_blog
     REDIS_URL: redis://giwon-blog-redis:6379
-    ADMIN_JWT_SECRET: REPLACE_ME_JWT_SECRET_MUST_BE_32_CHARS_OR_MORE
-    ADMIN_GOOGLE_SUB: REPLACE_ME_COMMA_SEPARATED_GOOGLE_SUBS
     IMAGE_STORAGE_PATH: /data/blog/images
     IMAGE_PUBLIC_URL: http://giwon-blog-api-blog:8080/images
     NODE_ENV: production
@@ -40,8 +38,6 @@ x-api-admin: &api-admin-common
   environment:
     DATABASE_URL: postgresql://giwon:giwon1234@giwon-blog-db:5432/giwon_blog
     REDIS_URL: redis://giwon-blog-redis:6379
-    ADMIN_JWT_SECRET: REPLACE_ME_JWT_SECRET_MUST_BE_32_CHARS_OR_MORE
-    ADMIN_GOOGLE_SUB: REPLACE_ME_COMMA_SEPARATED_GOOGLE_SUBS
     IMAGE_STORAGE_PATH: /data/blog/images
     IMAGE_PUBLIC_URL: http://giwon-blog-api-blog:8080/images
     NODE_ENV: production

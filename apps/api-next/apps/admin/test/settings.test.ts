@@ -1,22 +1,9 @@
-import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
-import { SignJWT } from "jose";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { createApp } from "../src/app";
-import { env } from "@api-next/core";
 import { resetDb } from "@api-next/core/test-helpers";
 
-const secret = new TextEncoder().encode(env.ADMIN_JWT_SECRET);
-
-async function mintValidToken() {
-  return await new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(env.ADMIN_GOOGLE_SUB[0]!)
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(Date.now() / 1000) + 300)
-    .sign(secret);
-}
-
-function authHeaders(token: string): Record<string, string> {
-  return { authorization: `Bearer ${token}`, "content-type": "application/json" };
+function jsonHeaders(): Record<string, string> {
+  return { "content-type": "application/json" };
 }
 
 type SettingsBody = {
@@ -28,18 +15,13 @@ type SettingsBody = {
 
 describe("admin settings endpoints", () => {
   const app = createApp();
-  let token: string;
-
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
 
   beforeEach(async () => {
     await resetDb();
   });
 
   it("GET /admin/settings returns defaults when no row exists", async () => {
-    const res = await app.request("/admin/settings", { headers: authHeaders(token) });
+    const res = await app.request("/admin/settings");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       data: {
@@ -52,7 +34,7 @@ describe("admin settings endpoints", () => {
   it("PUT /admin/settings/blog stores and returns the updated config", async () => {
     const res = await app.request("/admin/settings/blog", {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({
         name: "Giwon's Blog",
         description: "dev notes",
@@ -73,7 +55,7 @@ describe("admin settings endpoints", () => {
     // First, update analytics to a non-default value.
     const analyticsRes = await app.request("/admin/settings/analytics", {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ trackingEnabled: false }),
     });
     expect(analyticsRes.status).toBe(200);
@@ -81,7 +63,7 @@ describe("admin settings endpoints", () => {
     // Then, update blog. Analytics must survive.
     const blogRes = await app.request("/admin/settings/blog", {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ name: "N", description: "D", profileImage: null }),
     });
     expect(blogRes.status).toBe(200);
@@ -93,7 +75,7 @@ describe("admin settings endpoints", () => {
   it("PUT /admin/settings/blog rejects a malformed body with 400", async () => {
     const res = await app.request("/admin/settings/blog", {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ name: 123 }), // wrong type for name
     });
     expect(res.status).toBe(400);
@@ -105,7 +87,7 @@ describe("admin settings endpoints", () => {
   it("PUT /admin/settings/analytics updates only analytics", async () => {
     const res = await app.request("/admin/settings/analytics", {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ trackingEnabled: false }),
     });
     expect(res.status).toBe(200);
@@ -114,20 +96,5 @@ describe("admin settings endpoints", () => {
     expect(body.data.blog).toEqual({ name: "Blog", description: "", profileImage: null });
   });
 
-  it("all three endpoints return 401 without a JWT", async () => {
-    const g = await app.request("/admin/settings");
-    expect(g.status).toBe(401);
-    const pb = await app.request("/admin/settings/blog", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "X", description: "", profileImage: null }),
-    });
-    expect(pb.status).toBe(401);
-    const pa = await app.request("/admin/settings/analytics", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ trackingEnabled: true }),
-    });
-    expect(pa.status).toBe(401);
-  });
 });
+

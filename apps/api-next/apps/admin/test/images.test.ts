@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { describe, it, expect, beforeEach, afterAll } from "bun:test";
 import path from "node:path";
-import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
-import { SignJWT } from "jose";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { resetEnvCache } from "@api-next/core/env";
 
 const TEST_STORAGE = path.join(process.cwd(), "storage-images-test");
@@ -10,18 +9,8 @@ process.env.IMAGE_PUBLIC_URL = "http://localhost:8081/images";
 resetEnvCache();
 
 const { createApp } = await import("../src/app");
-const { env } = await import("@api-next/core");
 
 const app = createApp();
-
-async function makeToken() {
-  const secret = new TextEncoder().encode(env.ADMIN_JWT_SECRET);
-  return await new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(env.ADMIN_GOOGLE_SUB[0]!)
-    .setExpirationTime("1h")
-    .sign(secret);
-}
 
 function pngBytes(size = 16): Uint8Array {
   // Minimal valid-ish PNG header + filler. Content check is by header only.
@@ -32,12 +21,6 @@ function pngBytes(size = 16): Uint8Array {
 }
 
 describe("POST /admin/images", () => {
-  let token: string;
-
-  beforeAll(async () => {
-    token = await makeToken();
-  });
-
   beforeEach(async () => {
     await rm(TEST_STORAGE, { recursive: true, force: true });
   });
@@ -51,7 +34,6 @@ describe("POST /admin/images", () => {
     fd.append("file", new Blob([pngBytes(32)], { type: "image/png" }), "test.png");
     const res = await app.request("/admin/images", {
       method: "POST",
-      headers: { authorization: `Bearer ${token}` },
       body: fd,
     });
     expect(res.status).toBe(200);
@@ -65,7 +47,6 @@ describe("POST /admin/images", () => {
     fd.append("file", new Blob([pngBytes(32)], { type: "image/jpeg" }), "test.jpg");
     const res = await app.request("/admin/images", {
       method: "POST",
-      headers: { authorization: `Bearer ${token}` },
       body: fd,
     });
     expect(res.status).toBe(200);
@@ -78,7 +59,6 @@ describe("POST /admin/images", () => {
     fd.append("file", new Blob([new Uint8Array([1, 2, 3])], { type: "text/plain" }), "x.txt");
     const res = await app.request("/admin/images", {
       method: "POST",
-      headers: { authorization: `Bearer ${token}` },
       body: fd,
     });
     expect(res.status).toBe(400);
@@ -92,7 +72,6 @@ describe("POST /admin/images", () => {
     fd.append("file", new Blob([big], { type: "image/png" }), "big.png");
     const res = await app.request("/admin/images", {
       method: "POST",
-      headers: { authorization: `Bearer ${token}` },
       body: fd,
     });
     expect(res.status).toBe(400);
@@ -104,17 +83,9 @@ describe("POST /admin/images", () => {
     const fd = new FormData();
     const res = await app.request("/admin/images", {
       method: "POST",
-      headers: { authorization: `Bearer ${token}` },
       body: fd,
     });
     expect(res.status).toBe(400);
-  });
-
-  it("requires a valid JWT", async () => {
-    const fd = new FormData();
-    fd.append("file", new Blob([pngBytes(32)], { type: "image/png" }), "test.png");
-    const res = await app.request("/admin/images", { method: "POST", body: fd });
-    expect(res.status).toBe(401);
   });
 });
 

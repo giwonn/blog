@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import path from "node:path";
 import { mkdir, writeFile, rm, stat } from "node:fs/promises";
-import { SignJWT } from "jose";
 import { createApp } from "../src/app";
-import { env, db, schema } from "@api-next/core";
+import { db, schema } from "@api-next/core";
 import { resetDb } from "@api-next/core/test-helpers";
 import { resetEnvCache } from "@api-next/core/env";
 
@@ -12,19 +11,8 @@ process.env.IMAGE_STORAGE_PATH = IMG_ROOT_ARTICLES;
 process.env.IMAGE_PUBLIC_URL = "http://localhost:8081/images";
 resetEnvCache();
 
-const secret = new TextEncoder().encode(env.ADMIN_JWT_SECRET);
-
-async function mintValidToken() {
-  return await new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(env.ADMIN_GOOGLE_SUB[0]!)
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(Date.now() / 1000) + 300)
-    .sign(secret);
-}
-
-function authHeaders(token: string): Record<string, string> {
-  return { authorization: `Bearer ${token}`, "content-type": "application/json" };
+function jsonHeaders(): Record<string, string> {
+  return { "content-type": "application/json" };
 }
 
 type ArticleResponse = {
@@ -100,11 +88,6 @@ async function seedArticle(
 
 describe("admin articles endpoints", () => {
   const app = createApp();
-  let token: string;
-
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
 
   beforeEach(async () => {
     await resetDb();
@@ -114,7 +97,7 @@ describe("admin articles endpoints", () => {
   it("POST creates a DRAFT article with publishedAt null", async () => {
     const res = await app.request("/admin/articles", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(201);
@@ -128,7 +111,7 @@ describe("admin articles endpoints", () => {
   it("POST creates a PUBLIC article with publishedAt populated", async () => {
     const res = await app.request("/admin/articles", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ ...validBody, status: "PUBLIC" }),
     });
     expect(res.status).toBe(201);
@@ -142,7 +125,7 @@ describe("admin articles endpoints", () => {
     await seedArticle({ slug: "hello-hono" });
     const res = await app.request("/admin/articles", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(400);
@@ -154,7 +137,7 @@ describe("admin articles endpoints", () => {
     const { content: _c, ...bodyNoContent } = validBody;
     const res = await app.request("/admin/articles", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(bodyNoContent),
     });
     expect(res.status).toBe(400);
@@ -162,7 +145,7 @@ describe("admin articles endpoints", () => {
 
   // ----- GET list -----
   it("GET /admin/articles empty returns empty page", async () => {
-    const res = await app.request("/admin/articles", { headers: authHeaders(token) });
+    const res = await app.request("/admin/articles", {});
     expect(res.status).toBe(200);
     const body = (await res.json()) as PageResponse;
     expect(body.data.content).toEqual([]);
@@ -176,7 +159,7 @@ describe("admin articles endpoints", () => {
     for (let i = 0; i < 25; i++) {
       await seedArticle({ slug: `art-${i.toString().padStart(2, "0")}` });
     }
-    const res = await app.request("/admin/articles", { headers: authHeaders(token) });
+    const res = await app.request("/admin/articles", {});
     expect(res.status).toBe(200);
     const body = (await res.json()) as PageResponse;
     expect(body.data.content).toHaveLength(10);
@@ -191,7 +174,7 @@ describe("admin articles endpoints", () => {
     for (let i = 0; i < 25; i++) {
       await seedArticle({ slug: `art-${i.toString().padStart(2, "0")}` });
     }
-    const res = await app.request("/admin/articles?page=2&size=10", { headers: authHeaders(token) });
+    const res = await app.request("/admin/articles?page=2&size=10", {});
     expect(res.status).toBe(200);
     const body = (await res.json()) as PageResponse;
     expect(body.data.content).toHaveLength(5);
@@ -202,7 +185,7 @@ describe("admin articles endpoints", () => {
   // ----- GET by id -----
   it("GET /admin/articles/:id returns the article", async () => {
     const id = await seedArticle({ slug: "abc" });
-    const res = await app.request(`/admin/articles/${id}`, { headers: authHeaders(token) });
+    const res = await app.request(`/admin/articles/${id}`, {});
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: ArticleResponse };
     expect(body.data.id).toBe(id);
@@ -210,7 +193,7 @@ describe("admin articles endpoints", () => {
   });
 
   it("GET /admin/articles/:id returns 404 for missing", async () => {
-    const res = await app.request("/admin/articles/9999", { headers: authHeaders(token) });
+    const res = await app.request("/admin/articles/9999", {});
     expect(res.status).toBe(404);
     const body = (await res.json()) as { message: string };
     expect(body.message).toBe("게시글을 찾을 수 없습니다");
@@ -222,7 +205,7 @@ describe("admin articles endpoints", () => {
     await new Promise((r) => setTimeout(r, 5));
     const res = await app.request(`/admin/articles/${id}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ ...validBody, slug: "to-update", title: "Updated", status: "PUBLIC" }),
     });
     expect(res.status).toBe(200);
@@ -236,7 +219,7 @@ describe("admin articles endpoints", () => {
     const id = await seedArticle({ slug: "second" });
     const res = await app.request(`/admin/articles/${id}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ ...validBody, slug: "first" }),
     });
     expect(res.status).toBe(400);
@@ -248,7 +231,7 @@ describe("admin articles endpoints", () => {
     const id = await seedArticle({ slug: "stable" });
     const res = await app.request(`/admin/articles/${id}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ ...validBody, slug: "stable" }),
     });
     expect(res.status).toBe(200);
@@ -258,7 +241,7 @@ describe("admin articles endpoints", () => {
     const id = await seedArticle({ slug: "to-publish", status: "DRAFT", publishedAt: null });
     const res = await app.request(`/admin/articles/${id}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ ...validBody, slug: "to-publish", status: "PUBLIC" }),
     });
     expect(res.status).toBe(200);
@@ -270,7 +253,7 @@ describe("admin articles endpoints", () => {
   it("PUT 404 for missing", async () => {
     const res = await app.request("/admin/articles/9999", {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(404);
@@ -281,40 +264,19 @@ describe("admin articles endpoints", () => {
     const id = await seedArticle();
     const del = await app.request(`/admin/articles/${id}`, {
       method: "DELETE",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
     });
     expect(del.status).toBe(204);
-    const get = await app.request(`/admin/articles/${id}`, { headers: authHeaders(token) });
+    const get = await app.request(`/admin/articles/${id}`, {});
     expect(get.status).toBe(404);
   });
 
   it("DELETE 404 for missing", async () => {
     const res = await app.request("/admin/articles/9999", {
       method: "DELETE",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
     });
     expect(res.status).toBe(404);
-  });
-
-  it("all endpoints 401 without JWT", async () => {
-    const list = await app.request("/admin/articles");
-    expect(list.status).toBe(401);
-    const get = await app.request("/admin/articles/1");
-    expect(get.status).toBe(401);
-    const post = await app.request("/admin/articles", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(validBody),
-    });
-    expect(post.status).toBe(401);
-    const put = await app.request("/admin/articles/1", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(validBody),
-    });
-    expect(put.status).toBe(401);
-    const del = await app.request("/admin/articles/1", { method: "DELETE" });
-    expect(del.status).toBe(401);
   });
 
   // --- Plan J: image integration ---
@@ -343,7 +305,7 @@ describe("admin articles endpoints", () => {
     const tempUrl = await seedTempImage();
     const res = await app.request("/admin/articles", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({
         title: "With image",
         slug: "with-image",
@@ -370,7 +332,7 @@ describe("admin articles endpoints", () => {
     const tempUrl = await seedTempImage();
     const createRes = await app.request("/admin/articles", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({
         title: "Remove",
         slug: "remove-img",
@@ -390,7 +352,7 @@ describe("admin articles endpoints", () => {
 
     const putRes = await app.request(`/admin/articles/${created.data.id}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({
         title: "Remove",
         slug: "remove-img",
@@ -412,7 +374,7 @@ describe("admin articles endpoints", () => {
     const tempUrl = await seedTempImage();
     const createRes = await app.request("/admin/articles", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({
         title: "Delete",
         slug: "delete-img",
@@ -432,7 +394,7 @@ describe("admin articles endpoints", () => {
 
     const delRes = await app.request(`/admin/articles/${created.data.id}`, {
       method: "DELETE",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
     });
     expect(delRes.status).toBe(204);
     expect(await fileExists(permUrl)).toBe(false);

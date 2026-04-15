@@ -1,22 +1,10 @@
-import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
-import { SignJWT } from "jose";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { createApp } from "../src/app";
-import { env, db, schema } from "@api-next/core";
+import { db, schema } from "@api-next/core";
 import { resetDb } from "@api-next/core/test-helpers";
 
-const secret = new TextEncoder().encode(env.ADMIN_JWT_SECRET);
-
-async function mintValidToken() {
-  return await new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(env.ADMIN_GOOGLE_SUB[0]!)
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(Date.now() / 1000) + 300)
-    .sign(secret);
-}
-
-function authHeaders(token: string): Record<string, string> {
-  return { authorization: `Bearer ${token}`, "content-type": "application/json" };
+function jsonHeaders(): Record<string, string> {
+  return { "content-type": "application/json" };
 }
 
 type SeriesResponse = {
@@ -81,11 +69,6 @@ async function seedArticle(opts: {
 
 describe("admin series endpoints", () => {
   const app = createApp();
-  let token: string;
-
-  beforeAll(async () => {
-    token = await mintValidToken();
-  });
 
   beforeEach(async () => {
     await resetDb();
@@ -95,7 +78,7 @@ describe("admin series endpoints", () => {
   it("POST /admin/series creates a series", async () => {
     const res = await app.request("/admin/series", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(201);
@@ -111,7 +94,7 @@ describe("admin series endpoints", () => {
     await seedSeries();
     const res = await app.request("/admin/series", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(400);
@@ -123,7 +106,7 @@ describe("admin series endpoints", () => {
     const { title: _t, ...bodyNoTitle } = validBody;
     const res = await app.request("/admin/series", {
       method: "POST",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(bodyNoTitle),
     });
     expect(res.status).toBe(400);
@@ -131,7 +114,7 @@ describe("admin series endpoints", () => {
 
   // ----- GET list -----
   it("GET /admin/series returns empty list", async () => {
-    const res = await app.request("/admin/series", { headers: authHeaders(token) });
+    const res = await app.request("/admin/series", {});
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ data: [] });
   });
@@ -139,7 +122,7 @@ describe("admin series endpoints", () => {
   it("GET /admin/series returns all seeded series", async () => {
     await seedSeries({ slug: "a", title: "A" });
     await seedSeries({ slug: "b", title: "B" });
-    const res = await app.request("/admin/series", { headers: authHeaders(token) });
+    const res = await app.request("/admin/series", {});
     expect(res.status).toBe(200);
     const body = (await res.json()) as SeriesListEnvelope;
     expect(body.data).toHaveLength(2);
@@ -150,7 +133,7 @@ describe("admin series endpoints", () => {
   // ----- GET by id -----
   it("GET /admin/series/:id returns series + empty articles", async () => {
     const id = await seedSeries();
-    const res = await app.request(`/admin/series/${id}`, { headers: authHeaders(token) });
+    const res = await app.request(`/admin/series/${id}`, {});
     expect(res.status).toBe(200);
     const body = (await res.json()) as SeriesDetailEnvelope;
     expect(body.data.series.slug).toBe("hono-deep-dive");
@@ -162,14 +145,14 @@ describe("admin series endpoints", () => {
     await seedArticle({ seriesId: id, status: "PUBLIC", orderInSeries: 2, slug: "s2" });
     await seedArticle({ seriesId: id, status: "DRAFT", orderInSeries: 1, slug: "s1" });
     await seedArticle({ seriesId: id, status: "LOCKED", orderInSeries: 3, slug: "s3" });
-    const res = await app.request(`/admin/series/${id}`, { headers: authHeaders(token) });
+    const res = await app.request(`/admin/series/${id}`, {});
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { series: SeriesResponse; articles: { slug: string }[] } };
     expect(body.data.articles.map((a) => a.slug)).toEqual(["s1", "s2", "s3"]);
   });
 
   it("GET /admin/series/:id returns 404 for missing id", async () => {
-    const res = await app.request("/admin/series/9999", { headers: authHeaders(token) });
+    const res = await app.request("/admin/series/9999", {});
     expect(res.status).toBe(404);
     const body = (await res.json()) as ErrorEnvelope;
     expect(body.message).toBe("시리즈를 찾을 수 없습니다");
@@ -181,7 +164,7 @@ describe("admin series endpoints", () => {
     await new Promise((r) => setTimeout(r, 5));
     const res = await app.request(`/admin/series/${id}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ ...validBody, title: "Hono Deep Dive (revised)" }),
     });
     expect(res.status).toBe(200);
@@ -194,7 +177,7 @@ describe("admin series endpoints", () => {
     const id = await seedSeries();
     const res = await app.request(`/admin/series/${id}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(200);
@@ -205,7 +188,7 @@ describe("admin series endpoints", () => {
     const id = await seedSeries({ slug: "second" });
     const res = await app.request(`/admin/series/${id}`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ ...validBody, slug: "first" }),
     });
     expect(res.status).toBe(400);
@@ -216,7 +199,7 @@ describe("admin series endpoints", () => {
   it("PUT /admin/series/:id returns 404 for missing id", async () => {
     const res = await app.request("/admin/series/9999", {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(404);
@@ -227,17 +210,17 @@ describe("admin series endpoints", () => {
     const id = await seedSeries();
     const del = await app.request(`/admin/series/${id}`, {
       method: "DELETE",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
     });
     expect(del.status).toBe(204);
-    const getRes = await app.request(`/admin/series/${id}`, { headers: authHeaders(token) });
+    const getRes = await app.request(`/admin/series/${id}`, {});
     expect(getRes.status).toBe(404);
   });
 
   it("DELETE /admin/series/:id returns 404 for missing id", async () => {
     const res = await app.request("/admin/series/9999", {
       method: "DELETE",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
     });
     expect(res.status).toBe(404);
   });
@@ -250,11 +233,11 @@ describe("admin series endpoints", () => {
     const a3 = await seedArticle({ seriesId: id, status: "PUBLIC", orderInSeries: 99, slug: "sa3" });
     const res = await app.request(`/admin/series/${id}/article-order`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ articleIds: [a3, a1, a2] }),
     });
     expect(res.status).toBe(200);
-    const get = await app.request(`/admin/series/${id}`, { headers: authHeaders(token) });
+    const get = await app.request(`/admin/series/${id}`, {});
     const body = (await get.json()) as { data: { articles: { slug: string }[] } };
     expect(body.data.articles.map((a) => a.slug)).toEqual(["sa3", "sa1", "sa2"]);
   });
@@ -262,31 +245,11 @@ describe("admin series endpoints", () => {
   it("PUT /admin/series/:id/article-order returns 404 for missing series", async () => {
     const res = await app.request(`/admin/series/9999/article-order`, {
       method: "PUT",
-      headers: authHeaders(token),
+      headers: jsonHeaders(),
       body: JSON.stringify({ articleIds: [] }),
     });
     expect(res.status).toBe(404);
   });
 
-  // ----- Auth -----
-  it("all endpoints return 401 without a JWT", async () => {
-    const list = await app.request("/admin/series");
-    expect(list.status).toBe(401);
-    const get = await app.request("/admin/series/1");
-    expect(get.status).toBe(401);
-    const post = await app.request("/admin/series", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(validBody),
-    });
-    expect(post.status).toBe(401);
-    const put = await app.request("/admin/series/1", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(validBody),
-    });
-    expect(put.status).toBe(401);
-    const del = await app.request("/admin/series/1", { method: "DELETE" });
-    expect(del.status).toBe(401);
-  });
 });
+
