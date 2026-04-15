@@ -251,7 +251,7 @@ After cutover, Next.js admin would call Hono admin without any token and
 get 401 on every request → admin broken.
 
 **Fix:** K2 removes jwtAuth from Hono admin entirely to match Kotlin's
-posture. See commit <SHA-TO-FILL> for the refactor.
+posture. See commit `f076765` for the refactor.
 
 This is officially a ❌ breaking gap that K1's audit missed. Root cause:
 the audit compared endpoint shapes (method, path, request/response) but
