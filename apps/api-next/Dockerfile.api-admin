@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1
+FROM oven/bun:1.3.12-alpine AS build
+WORKDIR /build
+
+# Copy workspace manifests first for better caching
+# Monorepo root (build context is ~/github/new-blog)
+COPY package.json bun.lock ./
+
+# All workspace member package.json files so bun install can resolve the lockfile
+COPY apps/blog/package.json ./apps/blog/
+COPY apps/admin/package.json ./apps/admin/
+COPY apps/api-next/apps/blog/package.json ./apps/api-next/apps/blog/
+COPY apps/api-next/apps/admin/package.json ./apps/api-next/apps/admin/
+COPY apps/api-next/packages/core/package.json ./apps/api-next/packages/core/
+
+RUN bun install --frozen-lockfile
+
+# Source
+COPY apps/api-next/apps/blog ./apps/api-next/apps/blog
+COPY apps/api-next/apps/admin ./apps/api-next/apps/admin
+COPY apps/api-next/packages/core ./apps/api-next/packages/core
+COPY apps/api-next/tsconfig.base.json ./apps/api-next/
+
+# Typecheck gate (no emit — Bun runs TS directly)
+RUN cd apps/api-next/apps/admin && bun x tsc --noEmit
+
+FROM oven/bun:1.3.12-alpine AS runtime
+WORKDIR /app
+COPY --from=build /build ./
+RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+USER app
+ENV NODE_ENV=production
+EXPOSE 8081
+CMD ["bun", "run", "--bun", "apps/api-next/apps/admin/src/index.ts"]
