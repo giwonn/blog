@@ -28,8 +28,8 @@ apps/api-next/
 ├── Dockerfile.api-blog                    # multi-stage Bun build for blog
 ├── Dockerfile.api-admin                   # same shape, port 8081
 ├── docker-compose.prod.yml                # hono backends, blue/green (PROD only)
-├── .env.example.prod                      # prod env template (for docker-compose.prod.yml)
 └── .env.example                           # dev env template (for local bun test / drizzle)
+    (.env.example.prod — deleted mid-plan; prod secrets are now hardcoded in docker-compose.prod.yml)
 # NOTE: docker-compose.yml stays as the DEV compose (api-next-dev-db + api-next-dev-redis)
 
 infra/
@@ -161,6 +161,17 @@ tsc --noEmit acts as a typecheck gate inside the build image."
 ---
 
 ## Task 2: `apps/api-next/docker-compose.prod.yml` + `.env.example` + `.env.example.prod`
+
+> **Superseded mid-execution.** Task 2 originally created a separate
+> `.env.example.prod` template and used `${DB_PASSWORD}` / `${ADMIN_JWT_SECRET}`
+> / `${ADMIN_GOOGLE_SUB}` interpolation in `docker-compose.prod.yml`, expecting
+> the user to populate a `.env` file on the server. After reviewing the actual
+> threat model (API ports are internal-only; only the Next.js frontends are
+> externally reachable), the approach was simplified: all values are now
+> hardcoded directly in `docker-compose.prod.yml`, and `.env.example.prod` was
+> deleted. The historical steps below are kept for commit traceability but
+> do NOT follow them for any re-run — use the current compose file directly.
+
 
 > **Note:** The dev compose at `apps/api-next/docker-compose.yml` stays unchanged — it defines the local `api-next-dev-db` (postgres:5433) and `api-next-dev-redis` (redis:6380) containers used by `bun test` and drizzle dry-runs. The prod compose is a NEW separate file at `apps/api-next/docker-compose.prod.yml`.
 
@@ -604,14 +615,22 @@ Before anything touches the server, verify and gather:
        git log --oneline -5
      → The top commit should match the latest Phase 1 verification commit SHA.
 
-3. Prod environment file
-   - cat apps/api-next/.env.example
-   - Copy to apps/api-next/.env and fill in:
-       DB_PASSWORD=<value-from-apps/api/docker-compose.yml or existing secrets>
-       ADMIN_JWT_SECRET=<ideally copy from Kotlin's runtime — check docker inspect api-admin-blue>
-       ADMIN_GOOGLE_SUB=<the comma-separated Google sub IDs>
-   - Verify: DB_PASSWORD matches the one the Kotlin API uses today
-     (docker exec giwon-blog-db env | grep POSTGRES_PASSWORD)
+3. Production secrets are hardcoded in docker-compose.prod.yml
+   - The approach changed mid-plan: instead of a .env file, all env values
+     live directly in apps/api-next/docker-compose.prod.yml. Rationale: the
+     Hono API ports 8080/8081 are internal-only (not host-published), so
+     JWT secret exposure in a public repo is not directly exploitable.
+   - BEFORE pushing, the user must locally fill in two placeholders in
+     apps/api-next/docker-compose.prod.yml:
+       REPLACE_ME_JWT_SECRET_MUST_BE_32_CHARS_OR_MORE  → real JWT secret
+       REPLACE_ME_COMMA_SEPARATED_GOOGLE_SUBS          → real google subs
+     Sources:
+       docker exec api-admin-blue env | grep -iE 'JWT_SECRET|JWT_KEY|ADMIN_JWT'
+       docker exec api-admin-blue env | grep -iE 'GOOGLE_SUB|ADMIN_SUB|OAUTH_SUB'
+   - Commit + push the filled-in file, then git pull on the server.
+   - On the server, verify no placeholders remain:
+       grep -c REPLACE_ME apps/api-next/docker-compose.prod.yml
+     Expected: 0.
 
 4. Docker network
    - docker network ls | grep blog-network
@@ -688,10 +707,14 @@ On the server:
    docker logs api-admin-next-blue --tail 100
 
    Common causes:
-   - DB_PASSWORD wrong → fix .env, docker compose up -d --force-recreate
+   - DB password wrong → the compose.prod.yml has `giwon:giwon1234` hardcoded.
+     Verify that matches the Kotlin stack: docker exec giwon-blog-db env | grep POSTGRES_PASSWORD
+     If different, edit compose.prod.yml locally, commit+push, pull on server,
+     rebuild: docker compose -f apps/api-next/docker-compose.prod.yml up -d --force-recreate api-blog-next-blue api-admin-next-blue
    - Cannot reach giwon-blog-db → the Kotlin network name changed, check
      docker network inspect blog-network
-   - ADMIN_JWT_SECRET too short (< 32 chars) → fix .env
+   - ADMIN_JWT_SECRET too short (< 32 chars) → edit compose.prod.yml locally,
+     commit+push, pull, force-recreate
 
 5. Verify NO traffic is flowing to Hono yet
    docker logs api-blog-next-blue | grep -c "GET " || echo "no requests yet — good"
@@ -744,18 +767,10 @@ is untouched. Kotlin continues serving traffic throughout.
 3. Run drizzle-kit migrate from inside an api-blog-next-blue container
 
    This is cleaner than installing drizzle-kit on the host. The Hono
-   container already has the migration files + bun + drizzle-kit.
+   container already has the migration files, bun, drizzle-kit, and a
+   fully-resolved DATABASE_URL in its env (hardcoded via compose.prod.yml).
 
-   docker exec api-blog-next-blue sh -c 'cd packages/core && DATABASE_URL="postgresql://giwon:$DB_PASSWORD@giwon-blog-db:5432/giwon_blog" bun x drizzle-kit migrate'
-
-   Wait — DB_PASSWORD is set as an env in the container. But drizzle-kit
-   expands $VAR from the drizzle.config.ts file's process.env, and the
-   container's env already has DATABASE_URL... but our compose passes
-   DATABASE_URL=postgresql://giwon:${DB_PASSWORD}@... which is already
-   resolved at compose time. So just use the resolved DATABASE_URL that
-   the container already sees:
-
-   docker exec api-blog-next-blue sh -c 'cd packages/core && bun x drizzle-kit migrate'
+   docker exec api-blog-next-blue sh -c 'cd apps/api-next/packages/core && bun x drizzle-kit migrate'
 
    Expected output:
      - "baseline" migration is detected as already applied (skipped)
@@ -966,7 +981,8 @@ BLOG (blog.giwon.dev):
 
 ADMIN (admin.giwon.dev):
   [ ] Login with Google works (JWT issued; if this fails, ADMIN_JWT_SECRET
-      or ADMIN_GOOGLE_SUB is wrong in apps/api-next/.env)
+      or ADMIN_GOOGLE_SUB is wrong in apps/api-next/docker-compose.prod.yml —
+      check the hardcoded values)
   [ ] Dashboard renders with real stats
   [ ] Articles list loads
   [ ] Create a new DRAFT article with a placeholder image

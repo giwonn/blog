@@ -144,10 +144,10 @@ x-api-blog: &api-blog-common
   networks:
     - blog-network
   environment:
-    DATABASE_URL: postgresql://giwon:${DB_PASSWORD}@giwon-blog-db:5432/giwon_blog
+    DATABASE_URL: postgresql://giwon:giwon1234@giwon-blog-db:5432/giwon_blog
     REDIS_URL: redis://giwon-blog-redis:6379
-    ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
-    ADMIN_GOOGLE_SUB: ${ADMIN_GOOGLE_SUB}
+    ADMIN_JWT_SECRET: REPLACE_ME_JWT_SECRET_MUST_BE_32_CHARS_OR_MORE
+    ADMIN_GOOGLE_SUB: REPLACE_ME_COMMA_SEPARATED_GOOGLE_SUBS
     IMAGE_STORAGE_PATH: /data/blog/images
     IMAGE_PUBLIC_URL: http://giwon-blog-api-blog:8080/images
     NODE_ENV: production
@@ -173,10 +173,10 @@ x-api-admin: &api-admin-common
   networks:
     - blog-network
   environment:
-    DATABASE_URL: postgresql://giwon:${DB_PASSWORD}@giwon-blog-db:5432/giwon_blog
+    DATABASE_URL: postgresql://giwon:giwon1234@giwon-blog-db:5432/giwon_blog
     REDIS_URL: redis://giwon-blog-redis:6379
-    ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
-    ADMIN_GOOGLE_SUB: ${ADMIN_GOOGLE_SUB}
+    ADMIN_JWT_SECRET: REPLACE_ME_JWT_SECRET_MUST_BE_32_CHARS_OR_MORE
+    ADMIN_GOOGLE_SUB: REPLACE_ME_COMMA_SEPARATED_GOOGLE_SUBS
     IMAGE_STORAGE_PATH: /data/blog/images
     IMAGE_PUBLIC_URL: http://giwon-blog-api-blog:8080/images
     NODE_ENV: production
@@ -219,7 +219,7 @@ volumes:
     external: true    # shares the volume from apps/api/docker-compose.yml
 ```
 
-**Environment variables** come from a `.env` file in the same directory (gitignored) that the user populates on the server before first deploy. `.env.example` is committed with placeholders.
+**Environment variables are hardcoded directly in `docker-compose.prod.yml`** instead of being read from an external `.env` file. Rationale: all four K2 ports (3000/3001/8080/8081) except the two frontend ports are `expose`-only on the internal docker network — API ports 8080/8081 are never published to host and are unreachable from outside. The Next.js frontends are the only externally-accessible surface, and they proxy to the API via the internal `giwon-blog-api-blog` / `giwon-blog-api-admin` aliases. Under this threat model, the JWT signing secret being in a public repo is not directly exploitable (an attacker can't reach the admin API endpoint to present a forged token). DB_PASSWORD is likewise moot since postgres is also internal-only. Before first deploy, the user replaces the two `REPLACE_ME_*` placeholders with real values in a local commit and pushes.
 
 **Shared `blog-images` volume:** Kotlin's compose creates the volume; K2's compose reuses it with `external: true`. Data survives the cutover. Plan K3 will claim ownership later.
 
@@ -299,8 +299,11 @@ services:
     ports:
       - "3000:3000"
       - "3001:3001"
-      - "8080:8080"
-      - "8081:8081"
+    # 8080 / 8081 intentionally NOT published to host — internal-only, matching the
+    # existing Kotlin posture. Next.js frontends reach the API via the aliases below.
+    expose:
+      - "8080"
+      - "8081"
     networks:
       blog-network:
         aliases:
@@ -374,7 +377,7 @@ Phases:
    - SSH to server, `cd /opt/blog` (or wherever the monorepo is deployed)
    - `git fetch && git checkout main && git pull`
    - Confirm the commit hash matches what was just merged
-   - Verify `.env` file exists in `apps/api-next/` with prod creds filled in (DB_PASSWORD, ADMIN_JWT_SECRET, ADMIN_GOOGLE_SUB)
+   - Confirm the two `REPLACE_ME_*` placeholders in `apps/api-next/docker-compose.prod.yml` have been filled in with the real JWT secret + Google sub values (committed locally and pushed). Grep for `REPLACE_ME` in the file — must return zero matches.
    - `docker network ls | grep blog-network` — must exist
 2. **Bring up Hono backends alongside Kotlin**
    - `docker compose -f apps/api-next/docker-compose.prod.yml build api-blog-next-blue api-admin-next-blue`
@@ -437,9 +440,8 @@ That said, Plan K2's runbook explicitly notes that during the K2 window, pushing
 ## K2 Deliverables
 
 1. `apps/api-next/Dockerfile.api-blog` and `Dockerfile.api-admin` (new, multi-stage Bun)
-2. `apps/api-next/docker-compose.prod.yml` (new, prod Hono backends; dev compose stays at docker-compose.yml)
+2. `apps/api-next/docker-compose.prod.yml` (new, prod Hono backends; secrets hardcoded inline — see rationale in section 2. Dev compose stays at docker-compose.yml)
 3. `apps/api-next/.env.example` (dev template; unchanged from pre-K2)
-3b. `apps/api-next/.env.example.prod` (new, documents required prod env vars for docker-compose.prod.yml)
 4. `infra/nginx/default.conf` (new)
 5. `infra/nginx/docker-compose.yml` (new)
 6. `infra/scripts/deploy-api-next.sh` (new)
