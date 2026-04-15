@@ -10,7 +10,9 @@ dist/
 !.env.example
 !.env.test
 
-# Drizzle-kit introspect staging (schema.ts is copied to src/db/ and IS committed)
-packages/core/drizzle/
+# Drizzle-kit introspect staging (schema.ts and relations.ts are copied to src/db/ and committed there)
+# Migration SQL files and the journal ARE committed — only ignore the introspect-generated schema files
+packages/core/drizzle/schema.ts
+packages/core/drizzle/relations.ts
 
 storage/
