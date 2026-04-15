@@ -12,9 +12,7 @@ const APP_TABLES = [
   "books",
   "visitor_sessions",
   "page_views",
-  "daily_article_stats",
   "daily_visitor_stats",
-  "article_stats",
   "batch_job_log",
 ] as const;
 

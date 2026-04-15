@@ -9,18 +9,6 @@ import { sql } from "drizzle-orm"
 
 
 
-export const article_stats = pgTable("article_stats", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "article_stats_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
-	aggregated_at: timestamp({ precision: 6, mode: 'string' }).notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	article_id: bigint({ mode: "number" }).notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	view_count: bigint({ mode: "number" }).notNull(),
-}, (table) => [
-	unique("ukr2t3yof989xcjgnsgk1cub993").on(table.article_id),
-]);
-
 export const page_views = pgTable("page_views", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "page_views_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
@@ -35,18 +23,6 @@ export const page_views = pgTable("page_views", {
 	latitude: doublePrecision(),
 	longitude: doublePrecision(),
 });
-
-export const daily_article_stats = pgTable("daily_article_stats", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity({ name: "daily_article_stats_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	article_id: bigint({ mode: "number" }).notNull(),
-	date: date().notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	view_count: bigint({ mode: "number" }).notNull(),
-}, (table) => [
-	unique("uk8dscgkk34il0tvbmhq9dd8gu4").on(table.article_id, table.date),
-]);
 
 export const daily_visitor_stats = pgTable("daily_visitor_stats", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
