@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        NETWORK_NAME = 'blog-network'
-    }
-
     triggers {
         githubPush()
     }
@@ -16,62 +12,38 @@ pipeline {
             }
         }
 
-        stage('Ensure Network Exists') {
+        stage('Check Changes') {
             steps {
                 script {
-                    sh "docker network create ${NETWORK_NAME} || true"
+                    def changes = sh(script: "git diff --name-only HEAD~1 || echo 'FIRST_BUILD'", returnStdout: true).trim()
+                    if (!changes.contains('apps/api/') && !changes.contains('package.json') && !changes.contains('bun.lock') && !changes.contains('FIRST_BUILD')) {
+                        currentBuild.result = 'NOT_BUILT'
+                        currentBuild.description = 'Skipped: no api changes'
+                        error('No relevant changes detected')
+                    }
                 }
             }
         }
 
-        stage('Ensure Nginx') {
+        stage('Ensure Network') {
             steps {
-                script {
-                    sh "docker compose -f docker-compose.yml up -d nginx postgres"
-                }
-            }
-        }
-
-        stage('DB Migrate') {
-            steps {
-                sh '''
-                    docker run --rm --network blog-network \
-                        -v $(pwd)/core/src/main/resources/db/migration:/flyway/sql \
-                        flyway/flyway:latest \
-                        -url=jdbc:postgresql://postgres:5432/giwon_blog \
-                        -user=giwon -password=giwon1234 \
-                        -locations=filesystem:/flyway/sql \
-                        -baselineOnMigrate=true \
-                        -baselineVersion=1 \
-                        repair
-                    docker run --rm --network blog-network \
-                        -v $(pwd)/core/src/main/resources/db/migration:/flyway/sql \
-                        flyway/flyway:latest \
-                        -url=jdbc:postgresql://postgres:5432/giwon_blog \
-                        -user=giwon -password=giwon1234 \
-                        -locations=filesystem:/flyway/sql \
-                        -baselineOnMigrate=true \
-                        -baselineVersion=1 \
-                        migrate
-                '''
+                sh 'docker network create blog-network || true'
             }
         }
 
         stage('Blue-Green Deploy') {
             steps {
-                script {
-                    sh "chmod +x scripts/deploy.sh && ./scripts/deploy.sh"
-                }
+                sh 'chmod +x infra/scripts/deploy-api.sh && bash infra/scripts/deploy-api.sh'
             }
         }
     }
 
     post {
         success {
-            echo 'Deployment successful!'
+            echo 'API (Hono) deployment successful!'
         }
         failure {
-            echo 'Deployment failed!'
+            echo 'API (Hono) deployment failed!'
         }
     }
 }

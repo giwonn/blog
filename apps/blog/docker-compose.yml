@@ -2,8 +2,8 @@ name: giwon-blog
 
 x-blog: &blog-common
   build:
-    context: .
-    dockerfile: Dockerfile
+    context: ../../
+    dockerfile: apps/blog/Dockerfile
     args:
       - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
   restart: unless-stopped
@@ -19,10 +19,12 @@ x-blog: &blog-common
 services:
   blog-blue:
     <<: *blog-common
+    image: blog:latest
     container_name: blog-blue
 
   blog-green:
     <<: *blog-common
+    image: blog:latest
     container_name: blog-green
     profiles: ["green"]
 

@@ -23,8 +23,8 @@
   "workspaces": [
     "apps/blog",
     "apps/admin",
-    "apps/api-next/apps/*",
-    "apps/api-next/packages/*",
+    "apps/api/apps/*",
+    "apps/api/packages/*",
     "packages/*"
   ]
 }

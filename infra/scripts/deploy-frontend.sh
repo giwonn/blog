@@ -1,25 +1,41 @@
 #!/bin/bash
-# Blue-green deploy for the blog + admin frontend stacks.
-# Run from the monorepo root: bash infra/scripts/deploy-frontend.sh
+# Blue-green deploy for a single frontend service (blog or admin).
+# Usage: bash infra/scripts/deploy-frontend.sh <blog|admin>
+# Run from the monorepo root.
 set -e
 
-BLOG_COMPOSE="apps/blog/docker-compose.yml"
-ADMIN_COMPOSE="apps/admin/docker-compose.yml"
-NGINX_CONF="infra/nginx/default.conf"
-LOCK_FILE="/tmp/giwon-blog-frontend-deploy.lock"
+SERVICE="${1:?Usage: deploy-frontend.sh <blog|admin>}"
 
-# Acquire deploy lock
+case "$SERVICE" in
+  blog)
+    COMPOSE="apps/blog/docker-compose.yml"
+    CONTAINER_PREFIX="blog"
+    UPSTREAM_PATTERN="server blog-"
+    PORT=3000
+    ;;
+  admin)
+    COMPOSE="apps/admin/docker-compose.yml"
+    CONTAINER_PREFIX="admin"
+    UPSTREAM_PATTERN="server admin-"
+    PORT=3000
+    ;;
+  *)
+    echo "Unknown service: $SERVICE. Use 'blog' or 'admin'."
+    exit 1
+    ;;
+esac
+
+NGINX_CONF="infra/nginx/default.conf"
+LOCK_FILE="/tmp/giwon-blog-${SERVICE}-deploy.lock"
+
 exec 200>"$LOCK_FILE"
 if ! flock -n 200; then
-    echo "Another frontend deployment is already running. Waiting..."
+    echo "Another $SERVICE deployment is already running. Waiting..."
     flock 200
 fi
-
-# Release lock on exit
 trap 'flock -u 200' EXIT
 
-# Detect current active color (check blog side; admin mirrors it)
-if docker ps --format '{{.Names}}' | grep -q "^blog-blue$"; then
+if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_PREFIX}-blue$"; then
     CURRENT="blue"
     NEXT="green"
 else
@@ -27,78 +43,48 @@ else
     NEXT="blue"
 fi
 
-echo "Current: $CURRENT → Next: $NEXT"
+echo "[$SERVICE] Current: $CURRENT → Next: $NEXT"
 
-# 1. Build new images
-echo "Building new frontend images for $NEXT..."
-docker compose -f "$BLOG_COMPOSE" build "blog-${NEXT}"
-docker compose -f "$ADMIN_COMPOSE" build "admin-${NEXT}"
+echo "[$SERVICE] Building ${CONTAINER_PREFIX}-${NEXT}..."
+docker compose -f "$COMPOSE" build "${CONTAINER_PREFIX}-${NEXT}"
 
-# 2. Start new containers
-echo "Starting $NEXT frontend containers..."
-docker compose -f "$BLOG_COMPOSE" up -d --remove-orphans "blog-${NEXT}"
-docker compose -f "$ADMIN_COMPOSE" up -d --remove-orphans "admin-${NEXT}"
+echo "[$SERVICE] Starting ${CONTAINER_PREFIX}-${NEXT}..."
+docker compose -f "$COMPOSE" up -d --remove-orphans "${CONTAINER_PREFIX}-${NEXT}"
 
-# 3. Wait for containers to be running + HTTP ready (60s max, 2s steps)
-echo "Waiting for frontend containers to be ready..."
+echo "[$SERVICE] Waiting for container to be ready..."
 DEADLINE=$((SECONDS + 60))
-BLOG_READY=false
-ADMIN_READY=false
+READY=false
 
 while [ "$SECONDS" -lt "$DEADLINE" ]; do
-    BLOG_STATUS=$(docker inspect --format='{{.State.Status}}' "blog-${NEXT}" 2>/dev/null || echo "missing")
-    ADMIN_STATUS=$(docker inspect --format='{{.State.Status}}' "admin-${NEXT}" 2>/dev/null || echo "missing")
-
-    if [ "$BLOG_STATUS" = "running" ]; then
-        if docker exec "blog-${NEXT}" wget -q --spider http://localhost:3000/ 2>/dev/null; then
-            BLOG_READY=true
+    STATUS=$(docker inspect --format='{{.State.Status}}' "${CONTAINER_PREFIX}-${NEXT}" 2>/dev/null || echo "missing")
+    if [ "$STATUS" = "running" ]; then
+        if docker exec "${CONTAINER_PREFIX}-${NEXT}" wget -q --spider "http://localhost:${PORT}/" 2>/dev/null; then
+            READY=true
+            echo "[$SERVICE] ${CONTAINER_PREFIX}-${NEXT} is ready!"
+            break
         fi
     fi
-
-    if [ "$ADMIN_STATUS" = "running" ]; then
-        if docker exec "admin-${NEXT}" wget -q --spider http://localhost:3000/ 2>/dev/null; then
-            ADMIN_READY=true
-        fi
-    fi
-
-    if [ "$BLOG_READY" = "true" ] && [ "$ADMIN_READY" = "true" ]; then
-        echo "Both frontend containers are ready!"
-        break
-    fi
-
-    echo "  Waiting... (blog=$BLOG_STATUS/ready=$BLOG_READY, admin=$ADMIN_STATUS/ready=$ADMIN_READY)"
+    echo "  Waiting... (status=$STATUS)"
     sleep 2
 done
 
-if [ "$BLOG_READY" != "true" ] || [ "$ADMIN_READY" != "true" ]; then
-    echo "Frontend readiness timeout! Rolling back $NEXT containers..."
-    echo "=== blog-${NEXT} logs ==="
-    docker logs --tail 200 "blog-${NEXT}" 2>&1 || true
-    echo "=== admin-${NEXT} logs ==="
-    docker logs --tail 200 "admin-${NEXT}" 2>&1 || true
-    docker compose -f "$BLOG_COMPOSE" stop "blog-${NEXT}"
-    docker compose -f "$BLOG_COMPOSE" rm -f "blog-${NEXT}"
-    docker compose -f "$ADMIN_COMPOSE" stop "admin-${NEXT}"
-    docker compose -f "$ADMIN_COMPOSE" rm -f "admin-${NEXT}"
+if [ "$READY" != "true" ]; then
+    echo "[$SERVICE] Readiness timeout! Rolling back..."
+    docker logs --tail 200 "${CONTAINER_PREFIX}-${NEXT}" 2>&1 || true
+    docker compose -f "$COMPOSE" stop "${CONTAINER_PREFIX}-${NEXT}"
+    docker compose -f "$COMPOSE" rm -f "${CONTAINER_PREFIX}-${NEXT}"
     exit 1
 fi
 
-# 4. Flip Nginx upstreams to new color.
-# Use specific "server <name>:PORT" patterns to avoid matching api-blog-next-* lines.
-echo "Switching Nginx upstream to $NEXT..."
-sed -i \
-    "s/server blog-${CURRENT}:3000/server blog-${NEXT}:3000/g; s/server admin-${CURRENT}:3000/server admin-${NEXT}:3000/g" \
-    "$NGINX_CONF"
+echo "[$SERVICE] Switching Nginx upstream to $NEXT..."
+sed -i "s/${UPSTREAM_PATTERN}${CURRENT}:${PORT}/${UPSTREAM_PATTERN}${NEXT}:${PORT}/g" "$NGINX_CONF"
 docker exec giwon-blog-reverse-proxy nginx -s reload
 
-# 5. Stop and remove old containers
-echo "Stopping $CURRENT frontend containers..."
-docker compose -f "$BLOG_COMPOSE" stop "blog-${CURRENT}"
-docker compose -f "$BLOG_COMPOSE" rm -f "blog-${CURRENT}"
-docker compose -f "$ADMIN_COMPOSE" stop "admin-${CURRENT}"
-docker compose -f "$ADMIN_COMPOSE" rm -f "admin-${CURRENT}"
+echo "[$SERVICE] Stopping ${CONTAINER_PREFIX}-${CURRENT}..."
+docker compose -f "$COMPOSE" stop "${CONTAINER_PREFIX}-${CURRENT}"
+docker compose -f "$COMPOSE" rm -f "${CONTAINER_PREFIX}-${CURRENT}"
 
-# 6. Clean up dangling images
-docker image prune -f
+docker image prune -a -f
+docker builder prune -a -f
 
-echo "Deploy complete! Active frontend color: $NEXT"
+echo "[$SERVICE] Deploy complete! Active: ${CONTAINER_PREFIX}-${NEXT}"

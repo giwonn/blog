@@ -1,0 +1,85 @@
+name: giwon-blog-api
+
+x-api-blog: &api-blog-common
+  build:
+    context: ../../
+    dockerfile: apps/api/Dockerfile.api-blog
+  restart: unless-stopped
+  expose:
+    - "8080"
+  networks:
+    - blog-network
+  environment:
+    DATABASE_URL: postgresql://giwon:giwon1234@giwon-blog-db:5432/giwon_blog
+    REDIS_URL: redis://giwon-blog-redis:6379
+    IMAGE_STORAGE_PATH: /data/blog/images
+    IMAGE_PUBLIC_URL: http://giwon-blog-api-blog:8080/images
+    NODE_ENV: production
+    LOG_LEVEL: info
+    BLOG_PORT: "8080"
+    ADMIN_PORT: "8081"
+  volumes:
+    - blog-images:/data/blog/images
+  healthcheck:
+    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 3
+
+x-api-admin: &api-admin-common
+  build:
+    context: ../../
+    dockerfile: apps/api/Dockerfile.api-admin
+  restart: unless-stopped
+  expose:
+    - "8081"
+  networks:
+    - blog-network
+  environment:
+    DATABASE_URL: postgresql://giwon:giwon1234@giwon-blog-db:5432/giwon_blog
+    REDIS_URL: redis://giwon-blog-redis:6379
+    IMAGE_STORAGE_PATH: /data/blog/images
+    IMAGE_PUBLIC_URL: http://giwon-blog-api-blog:8080/images
+    NODE_ENV: production
+    LOG_LEVEL: info
+    BLOG_PORT: "8080"
+    ADMIN_PORT: "8081"
+  volumes:
+    - blog-images:/data/blog/images
+  healthcheck:
+    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 3
+
+services:
+  api-blog-blue:
+    <<: *api-blog-common
+    image: api-blog:latest
+    container_name: api-blog-blue
+
+  api-blog-green:
+    <<: *api-blog-common
+    image: api-blog:latest
+    container_name: api-blog-green
+    profiles: ["green"]
+
+  api-admin-blue:
+    <<: *api-admin-common
+    image: api-admin:latest
+    container_name: api-admin-blue
+
+  api-admin-green:
+    <<: *api-admin-common
+    image: api-admin:latest
+    container_name: api-admin-green
+    profiles: ["green"]
+
+networks:
+  blog-network:
+    external: true
+
+volumes:
+  blog-images:
+    external: true
+    name: giwon-blog-api_blog-images  # created by apps/api/docker-compose.yml; reuse the same volume so K2 inherits existing image data

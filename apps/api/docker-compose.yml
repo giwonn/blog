@@ -1,126 +1,31 @@
-name: giwon-blog-api
-
-x-api-blog: &api-blog-common
-  build:
-    context: .
-    dockerfile: Dockerfile.api-blog
-  restart: unless-stopped
-  expose:
-    - "8080"
-  networks:
-    - blog-network
-  environment:
-    SPRING_DATASOURCE_URL: jdbc:postgresql://giwon-blog-db:5432/giwon_blog
-    SPRING_DATASOURCE_USERNAME: giwon
-    SPRING_DATASOURCE_PASSWORD: giwon1234
-    IMAGE_STORAGE_PATH: /data/blog/images
-    IMAGE_PUBLIC_URL: ${IMAGE_PUBLIC_URL:-http://giwon-blog-api-blog:8080/images}
-    CORS_ALLOWED_ORIGINS: ${CORS_BLOG_ORIGINS:-http://localhost:3000}
-    REDIS_HOST: giwon-blog-redis
-  volumes:
-    - blog-images:/data/blog/images
-  depends_on:
-    - postgres
-    - redis
-  healthcheck:
-    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
-    interval: 10s
-    timeout: 5s
-    retries: 3
-
-x-api-admin: &api-admin-common
-  build:
-    context: .
-    dockerfile: Dockerfile.api-admin
-  restart: unless-stopped
-  expose:
-    - "8081"
-  networks:
-    - blog-network
-  environment:
-    SPRING_DATASOURCE_URL: jdbc:postgresql://giwon-blog-db:5432/giwon_blog
-    SPRING_DATASOURCE_USERNAME: giwon
-    SPRING_DATASOURCE_PASSWORD: giwon1234
-    IMAGE_STORAGE_PATH: /data/blog/images
-    IMAGE_PUBLIC_URL: ${IMAGE_PUBLIC_URL:-http://giwon-blog-api-blog:8080/images}
-    CORS_ALLOWED_ORIGINS: ${CORS_ADMIN_ORIGINS:-http://localhost:3001}
-    REDIS_HOST: giwon-blog-redis
-  volumes:
-    - blog-images:/data/blog/images
-  depends_on:
-    - postgres
-    - redis
-  healthcheck:
-    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/admin/health"]
-    interval: 10s
-    timeout: 5s
-    retries: 3
-
 services:
-  nginx:
-    image: nginx:alpine
-    container_name: giwon-blog-api-nginx
-    restart: unless-stopped
-    expose:
-      - "8080"
-      - "8081"
-    networks:
-      blog-network:
-        aliases:
-          - giwon-blog-api-blog
-          - giwon-blog-api-admin
-    volumes:
-      - ./nginx:/etc/nginx/conf.d
-
-  api-blog-blue:
-    <<: *api-blog-common
-    container_name: api-blog-blue
-
-  api-blog-green:
-    <<: *api-blog-common
-    container_name: api-blog-green
-    profiles: ["green"]
-
-  api-admin-blue:
-    <<: *api-admin-common
-    container_name: api-admin-blue
-
-  api-admin-green:
-    <<: *api-admin-common
-    container_name: api-admin-green
-    profiles: ["green"]
-
   postgres:
     image: postgres:17
-    container_name: giwon-blog-db
-    restart: unless-stopped
-    expose:
-      - "5432"
-    networks:
-      - blog-network
+    container_name: api-next-dev-db
+    ports:
+      - "5433:5432"
     environment:
-      POSTGRES_DB: giwon_blog
-      POSTGRES_USER: giwon
-      POSTGRES_PASSWORD: giwon1234
+      POSTGRES_DB: api_next_dev
+      POSTGRES_USER: api_next
+      POSTGRES_PASSWORD: api_next_dev_pwd
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - api-next-dev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api_next -d api_next_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: giwon-blog-redis
-    restart: unless-stopped
-    expose:
-      - "6379"
-    networks:
-      - blog-network
-    volumes:
-      - redis-data:/data
-
-networks:
-  blog-network:
-    external: true
+    container_name: api-next-dev-redis
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
-  postgres-data:
-  blog-images:
-  redis-data:
+  api-next-dev-db:

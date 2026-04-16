@@ -7,11 +7,11 @@
 set -e
 
 echo "[rollback] Stopping the Hono api-next containers (ignore errors if already stopped)..."
-docker compose -f apps/api-next/docker-compose.prod.yml stop \
-    api-blog-next-blue api-admin-next-blue \
-    api-blog-next-green api-admin-next-green 2>/dev/null || true
-docker compose -f apps/api-next/docker-compose.prod.yml --profile green stop \
-    api-blog-next-green api-admin-next-green 2>/dev/null || true
+docker compose -f apps/api/docker-compose.prod.yml stop \
+    api-blog-blue api-admin-blue \
+    api-blog-green api-admin-green 2>/dev/null || true
+docker compose -f apps/api/docker-compose.prod.yml --profile green stop \
+    api-blog-green api-admin-green 2>/dev/null || true
 
 echo "[rollback] Stopping frontend containers (blue-green, ignore errors if already stopped)..."
 docker compose -f apps/blog/docker-compose.yml stop blog-blue blog-green 2>/dev/null || true

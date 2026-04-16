@@ -11,6 +11,7 @@ export async function apiClient<T>(path: string, options?: RequestInit): Promise
     throw new Error(error.message);
   }
 
+  if (res.status === 204) return undefined as T;
   const json = await res.json();
   return json.data;
 }

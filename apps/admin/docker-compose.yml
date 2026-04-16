@@ -2,8 +2,8 @@ name: giwon-blog-admin
 
 x-admin: &admin-common
   build:
-    context: .
-    dockerfile: Dockerfile
+    context: ../../
+    dockerfile: apps/admin/Dockerfile
     args:
       - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
   restart: unless-stopped
@@ -19,10 +19,12 @@ x-admin: &admin-common
 services:
   admin-blue:
     <<: *admin-common
+    image: admin:latest
     container_name: admin-blue
 
   admin-green:
     <<: *admin-common
+    image: admin:latest
     container_name: admin-green
     profiles: ["green"]
 

@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        NETWORK_NAME = 'blog-network'
-    }
-
     triggers {
         githubPush()
     }
@@ -16,38 +12,38 @@ pipeline {
             }
         }
 
-        stage('Ensure Network Exists') {
+        stage('Check Changes') {
             steps {
                 script {
-                    sh "docker network create ${NETWORK_NAME} || true"
+                    def changes = sh(script: "git diff --name-only HEAD~1 || echo 'FIRST_BUILD'", returnStdout: true).trim()
+                    if (!changes.contains('apps/blog/') && !changes.contains('package.json') && !changes.contains('bun.lock') && !changes.contains('FIRST_BUILD')) {
+                        currentBuild.result = 'NOT_BUILT'
+                        currentBuild.description = 'Skipped: no blog changes'
+                        error('No relevant changes detected')
+                    }
                 }
             }
         }
 
-        stage('Build & Deploy') {
+        stage('Ensure Network') {
             steps {
-                script {
-                    sh "docker compose -f docker-compose.yml build --no-cache"
-                    sh "docker compose -f docker-compose.yml up -d"
-                }
+                sh 'docker network create blog-network || true'
             }
         }
 
-        stage('Cleanup') {
+        stage('Blue-Green Deploy') {
             steps {
-                script {
-                    sh "docker image prune -f"
-                }
+                sh 'chmod +x infra/scripts/deploy-frontend.sh && bash infra/scripts/deploy-frontend.sh blog'
             }
         }
     }
 
     post {
         success {
-            echo 'Deployment successful!'
+            echo 'Blog frontend deployment successful!'
         }
         failure {
-            echo 'Deployment failed!'
+            echo 'Blog frontend deployment failed!'
         }
     }
 }
