@@ -52,6 +52,3 @@ export default function RootLayout({
     </html>
   );
 }
-// t
-# test
-// test
