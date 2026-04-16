@@ -9,7 +9,7 @@ COPY apps/api/apps/blog/package.json ./apps/api/apps/blog/
 COPY apps/api/apps/admin/package.json ./apps/api/apps/admin/
 COPY apps/api/packages/core/package.json ./apps/api/packages/core/
 
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 
 COPY apps/api/apps/admin ./apps/api/apps/admin
 COPY apps/api/packages/core ./apps/api/packages/core

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM oven/bun:1.3.12-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /build
@@ -7,13 +8,13 @@ COPY apps/admin/package.json ./apps/admin/
 COPY apps/api/apps/blog/package.json ./apps/api/apps/blog/
 COPY apps/api/apps/admin/package.json ./apps/api/apps/admin/
 COPY apps/api/packages/core/package.json ./apps/api/packages/core/
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 COPY apps/admin ./apps/admin
 WORKDIR /build/apps/admin
 ARG IMAGE_PUBLIC_URL=http://localhost:8080/images
 ENV IMAGE_PUBLIC_URL=$IMAGE_PUBLIC_URL
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN bun run build
+RUN --mount=type=cache,target=/build/apps/admin/.next/cache bun run build
 
 FROM node:20-alpine AS runner
 RUN apk add --no-cache libc6-compat
