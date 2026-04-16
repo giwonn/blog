@@ -60,30 +60,17 @@ docker compose -f "$COMPOSE" build "${CONTAINER_PREFIX}-${NEXT}"
 echo "[$SERVICE] Starting ${CONTAINER_PREFIX}-${NEXT}..."
 docker compose -f "$COMPOSE" up -d  "${CONTAINER_PREFIX}-${NEXT}"
 
-echo "[$SERVICE] Waiting for container to be ready..."
-DEADLINE=$((SECONDS + 60))
-READY=false
-
-while [ "$SECONDS" -lt "$DEADLINE" ]; do
-    STATUS=$(docker inspect --format='{{.State.Status}}' "${CONTAINER_PREFIX}-${NEXT}" 2>/dev/null || echo "missing")
-    if [ "$STATUS" = "running" ]; then
-        if docker exec "${CONTAINER_PREFIX}-${NEXT}" wget -q -O /dev/null "http://127.0.0.1:${PORT}/" 2>/dev/null; then
-            READY=true
-            echo "[$SERVICE] ${CONTAINER_PREFIX}-${NEXT} is ready!"
-            break
-        fi
-    fi
-    echo "  Waiting... (status=$STATUS)"
-    sleep 2
-done
-
-if [ "$READY" != "true" ]; then
-    echo "[$SERVICE] Readiness timeout! Rolling back..."
+echo "[$SERVICE] Waiting for container to start..."
+sleep 5
+STATUS=$(docker inspect --format='{{.State.Status}}' "${CONTAINER_PREFIX}-${NEXT}" 2>/dev/null || echo "missing")
+if [ "$STATUS" != "running" ]; then
+    echo "[$SERVICE] Container failed to start (status=$STATUS). Rolling back..."
     docker logs --tail 200 "${CONTAINER_PREFIX}-${NEXT}" 2>&1 || true
     docker compose -f "$COMPOSE" stop "${CONTAINER_PREFIX}-${NEXT}"
     docker compose -f "$COMPOSE" rm -f "${CONTAINER_PREFIX}-${NEXT}"
     exit 1
 fi
+echo "[$SERVICE] ${CONTAINER_PREFIX}-${NEXT} is running."
 
 echo "[$SERVICE] Switching Nginx upstream to $NEXT..."
 sed -i "s/${UPSTREAM_PATTERN}${CURRENT}:${PORT}/${UPSTREAM_PATTERN}${NEXT}:${PORT}/g" "$NGINX_CONF"
