@@ -3,8 +3,10 @@
 # Run from the monorepo root: bash infra/scripts/deploy-api.sh
 set -e
 
-COMPOSE="apps/api/docker-compose.prod.yml"
-NGINX_CONF="infra/nginx/default.conf"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE="$REPO_ROOT/apps/api/docker-compose.prod.yml"
+NGINX_CONF="$REPO_ROOT/infra/nginx/default.conf"
 LOCK_FILE="/tmp/giwon-blog-api-deploy.lock"
 
 # Acquire deploy lock

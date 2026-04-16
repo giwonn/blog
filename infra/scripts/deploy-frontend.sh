@@ -6,15 +6,18 @@ set -e
 
 SERVICE="${1:?Usage: deploy-frontend.sh <blog|admin>}"
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 case "$SERVICE" in
   blog)
-    COMPOSE="apps/blog/docker-compose.yml"
+    COMPOSE="$REPO_ROOT/apps/blog/docker-compose.yml"
     CONTAINER_PREFIX="blog"
     UPSTREAM_PATTERN="server blog-"
     PORT=3000
     ;;
   admin)
-    COMPOSE="apps/admin/docker-compose.yml"
+    COMPOSE="$REPO_ROOT/apps/admin/docker-compose.yml"
     CONTAINER_PREFIX="admin"
     UPSTREAM_PATTERN="server admin-"
     PORT=3000
@@ -25,7 +28,7 @@ case "$SERVICE" in
     ;;
 esac
 
-NGINX_CONF="infra/nginx/default.conf"
+NGINX_CONF="$REPO_ROOT/infra/nginx/default.conf"
 LOCK_FILE="/tmp/giwon-blog-${SERVICE}-deploy.lock"
 
 exec 200>"$LOCK_FILE"
@@ -58,7 +61,7 @@ READY=false
 while [ "$SECONDS" -lt "$DEADLINE" ]; do
     STATUS=$(docker inspect --format='{{.State.Status}}' "${CONTAINER_PREFIX}-${NEXT}" 2>/dev/null || echo "missing")
     if [ "$STATUS" = "running" ]; then
-        if docker exec "${CONTAINER_PREFIX}-${NEXT}" node -e "fetch('http://localhost:${PORT}/').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))" 2>/dev/null; then
+        if docker exec "${CONTAINER_PREFIX}-${NEXT}" wget -q --spider "http://localhost:${PORT}/" 2>/dev/null; then
             READY=true
             echo "[$SERVICE] ${CONTAINER_PREFIX}-${NEXT} is ready!"
             break
