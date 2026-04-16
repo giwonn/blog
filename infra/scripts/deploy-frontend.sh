@@ -58,7 +58,7 @@ READY=false
 while [ "$SECONDS" -lt "$DEADLINE" ]; do
     STATUS=$(docker inspect --format='{{.State.Status}}' "${CONTAINER_PREFIX}-${NEXT}" 2>/dev/null || echo "missing")
     if [ "$STATUS" = "running" ]; then
-        if docker exec "${CONTAINER_PREFIX}-${NEXT}" wget -q --spider "http://localhost:${PORT}/" 2>/dev/null; then
+        if docker exec "${CONTAINER_PREFIX}-${NEXT}" node -e "fetch('http://localhost:${PORT}/').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))" 2>/dev/null; then
             READY=true
             echo "[$SERVICE] ${CONTAINER_PREFIX}-${NEXT} is ready!"
             break
