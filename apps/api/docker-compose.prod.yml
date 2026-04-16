@@ -4,6 +4,7 @@ x-api-blog: &api-blog-common
   build:
     context: ../../
     dockerfile: apps/api/Dockerfile.api-blog
+  image: api-blog:latest
   restart: unless-stopped
   expose:
     - "8080"
@@ -30,6 +31,7 @@ x-api-admin: &api-admin-common
   build:
     context: ../../
     dockerfile: apps/api/Dockerfile.api-admin
+  image: api-admin:latest
   restart: unless-stopped
   expose:
     - "8081"
@@ -53,27 +55,11 @@ x-api-admin: &api-admin-common
     retries: 3
 
 services:
-  api-blog-blue:
+  api-blog:
     <<: *api-blog-common
-    image: api-blog:latest
-    container_name: api-blog-blue
 
-  api-blog-green:
-    <<: *api-blog-common
-    image: api-blog:latest
-    container_name: api-blog-green
-    profiles: ["green"]
-
-  api-admin-blue:
+  api-admin:
     <<: *api-admin-common
-    image: api-admin:latest
-    container_name: api-admin-blue
-
-  api-admin-green:
-    <<: *api-admin-common
-    image: api-admin:latest
-    container_name: api-admin-green
-    profiles: ["green"]
 
 networks:
   blog-network:
@@ -82,4 +68,4 @@ networks:
 volumes:
   blog-images:
     external: true
-    name: giwon-blog-api_blog-images  # created by apps/api/docker-compose.yml; reuse the same volume so K2 inherits existing image data
+    name: giwon-blog-api_blog-images

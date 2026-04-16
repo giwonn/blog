@@ -1,32 +1,22 @@
 name: giwon-blog-admin
 
-x-admin: &admin-common
-  build:
-    context: ../../
-    dockerfile: apps/admin/Dockerfile
-    args:
-      - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
-  restart: unless-stopped
-  expose:
-    - "3000"
-  networks:
-    - blog-network
-  environment:
-    - NODE_ENV=production
-    - API_BASE_URL=http://giwon-blog-api-admin:8081
-    - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
-
 services:
-  admin-blue:
-    <<: *admin-common
+  admin:
+    build:
+      context: ../../
+      dockerfile: apps/admin/Dockerfile
+      args:
+        - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
     image: admin:latest
-    container_name: admin-blue
-
-  admin-green:
-    <<: *admin-common
-    image: admin:latest
-    container_name: admin-green
-    profiles: ["green"]
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - blog-network
+    environment:
+      - NODE_ENV=production
+      - API_BASE_URL=http://giwon-blog-api-admin:8081
+      - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
 
 networks:
   blog-network:
