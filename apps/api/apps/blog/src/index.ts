@@ -7,4 +7,3 @@ export default {
   fetch: app.fetch,
   port: env.BLOG_PORT,
 };
-// trigger
