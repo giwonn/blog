@@ -61,7 +61,7 @@ READY=false
 while [ "$SECONDS" -lt "$DEADLINE" ]; do
     STATUS=$(docker inspect --format='{{.State.Status}}' "${CONTAINER_PREFIX}-${NEXT}" 2>/dev/null || echo "missing")
     if [ "$STATUS" = "running" ]; then
-        if docker exec "${CONTAINER_PREFIX}-${NEXT}" wget -q --spider "http://localhost:${PORT}/" 2>/dev/null; then
+        if docker exec "${CONTAINER_PREFIX}-${NEXT}" wget -q -O /dev/null "http://127.0.0.1:${PORT}/" 2>/dev/null; then
             READY=true
             echo "[$SERVICE] ${CONTAINER_PREFIX}-${NEXT} is ready!"
             break
@@ -81,7 +81,7 @@ fi
 
 echo "[$SERVICE] Switching Nginx upstream to $NEXT..."
 sed -i "s/${UPSTREAM_PATTERN}${CURRENT}:${PORT}/${UPSTREAM_PATTERN}${NEXT}:${PORT}/g" "$NGINX_CONF"
-docker exec giwon-blog-reverse-proxy nginx -s reload
+docker restart giwon-blog-reverse-proxy
 
 echo "[$SERVICE] Stopping ${CONTAINER_PREFIX}-${CURRENT}..."
 docker compose -f "$COMPOSE" stop "${CONTAINER_PREFIX}-${CURRENT}"

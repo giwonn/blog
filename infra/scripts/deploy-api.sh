@@ -80,7 +80,7 @@ done
 # 4. Flip Nginx upstream to new color
 echo "Switching Nginx upstream to $NEXT..."
 sed -i "s/api-blog-${CURRENT}/api-blog-${NEXT}/g; s/api-admin-${CURRENT}/api-admin-${NEXT}/g" "$NGINX_CONF"
-docker exec giwon-blog-reverse-proxy nginx -s reload
+docker restart giwon-blog-reverse-proxy
 
 # 5. Stop and remove old containers
 echo "Stopping $CURRENT containers..."

@@ -1,27 +1,10 @@
 pipeline {
     agent any
 
-    triggers {
-        githubPush()
-    }
-
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
-            }
-        }
-
-        stage('Check Changes') {
-            steps {
-                script {
-                    def changes = sh(script: "git diff --name-only HEAD~1 || echo 'FIRST_BUILD'", returnStdout: true).trim()
-                    if (!changes.contains('apps/blog/') && !changes.contains('package.json') && !changes.contains('bun.lock') && !changes.contains('FIRST_BUILD')) {
-                        currentBuild.result = 'NOT_BUILT'
-                        currentBuild.description = 'Skipped: no blog changes'
-                        error('No relevant changes detected')
-                    }
-                }
             }
         }
 
@@ -40,10 +23,10 @@ pipeline {
 
     post {
         success {
-            echo 'Blog frontend deployment successful!'
+            echo 'Blog deployment successful!'
         }
         failure {
-            echo 'Blog frontend deployment failed!'
+            echo 'Blog deployment failed!'
         }
     }
 }
