@@ -36,7 +36,13 @@ if ! flock -n 200; then
     echo "Another $SERVICE deployment is already running. Waiting..."
     flock 200
 fi
-trap 'flock -u 200' EXIT
+cleanup() {
+    echo "[$SERVICE] Cleaning up Docker resources..."
+    docker image prune -a -f 2>/dev/null || true
+    docker builder prune -a -f 2>/dev/null || true
+    flock -u 200
+}
+trap cleanup EXIT
 
 if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_PREFIX}-blue$"; then
     CURRENT="blue"
@@ -86,8 +92,5 @@ docker restart giwon-blog-reverse-proxy
 echo "[$SERVICE] Stopping ${CONTAINER_PREFIX}-${CURRENT}..."
 docker compose -f "$COMPOSE" stop "${CONTAINER_PREFIX}-${CURRENT}"
 docker compose -f "$COMPOSE" rm -f "${CONTAINER_PREFIX}-${CURRENT}"
-
-docker image prune -a -f
-docker builder prune -a -f
 
 echo "[$SERVICE] Deploy complete! Active: ${CONTAINER_PREFIX}-${NEXT}"

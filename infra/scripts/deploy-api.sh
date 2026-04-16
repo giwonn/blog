@@ -16,8 +16,14 @@ if ! flock -n 200; then
     flock 200
 fi
 
-# Release lock on exit
-trap 'flock -u 200' EXIT
+# Always clean up on exit (success or failure)
+cleanup() {
+    echo "Cleaning up Docker resources..."
+    docker image prune -a -f 2>/dev/null || true
+    docker builder prune -a -f 2>/dev/null || true
+    flock -u 200
+}
+trap cleanup EXIT
 
 # Detect current active color
 if docker ps --format '{{.Names}}' | grep -q "api-blog-blue"; then
@@ -91,9 +97,5 @@ else
     docker compose -f "$COMPOSE" stop "api-blog-${CURRENT}" "api-admin-${CURRENT}"
     docker compose -f "$COMPOSE" rm -f "api-blog-${CURRENT}" "api-admin-${CURRENT}"
 fi
-
-# 6. Clean up unused images and build cache
-docker image prune -a -f
-docker builder prune -a -f
 
 echo "Deploy complete! Active API color: $NEXT"
