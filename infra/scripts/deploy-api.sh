@@ -10,7 +10,7 @@ COMPOSE="$REPO_ROOT/apps/api/docker-compose.prod.yml"
 cleanup() {
     echo "Cleaning up Docker resources..."
     docker image prune -a -f 2>/dev/null || true
-    docker builder prune -f --keep-storage=2GB 2>/dev/null || true
+    docker builder prune -a -f 2>/dev/null || true
 }
 trap cleanup EXIT
 
