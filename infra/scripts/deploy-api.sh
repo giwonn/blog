@@ -39,9 +39,9 @@ fi
 # 2. Start new containers
 echo "Starting $NEXT containers..."
 if [ "$NEXT" = "green" ]; then
-    docker compose -f "$COMPOSE" --profile green up -d --remove-orphans api-blog-green api-admin-green
+    docker compose -f "$COMPOSE" --profile green up -d  api-blog-green api-admin-green
 else
-    docker compose -f "$COMPOSE" up -d --remove-orphans api-blog-blue api-admin-blue
+    docker compose -f "$COMPOSE" up -d  api-blog-blue api-admin-blue
 fi
 
 # 3. Wait for health checks (30 × 5s = 150s max)

@@ -49,7 +49,7 @@ echo "[$SERVICE] Building ${CONTAINER_PREFIX}-${NEXT}..."
 docker compose -f "$COMPOSE" build "${CONTAINER_PREFIX}-${NEXT}"
 
 echo "[$SERVICE] Starting ${CONTAINER_PREFIX}-${NEXT}..."
-docker compose -f "$COMPOSE" up -d --remove-orphans "${CONTAINER_PREFIX}-${NEXT}"
+docker compose -f "$COMPOSE" up -d  "${CONTAINER_PREFIX}-${NEXT}"
 
 echo "[$SERVICE] Waiting for container to be ready..."
 DEADLINE=$((SECONDS + 60))

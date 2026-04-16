@@ -23,8 +23,6 @@ COPY --from=build /build/node_modules ./node_modules
 COPY --from=build /build/apps/api/apps/blog ./apps/api/apps/blog
 COPY --from=build /build/apps/api/packages/core ./apps/api/packages/core
 COPY --from=build /build/apps/api/tsconfig.base.json ./apps/api/
-RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
-USER app
 ENV NODE_ENV=production
 EXPOSE 8080
 CMD ["bun", "run", "--bun", "apps/api/apps/blog/src/index.ts"]

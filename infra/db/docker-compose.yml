@@ -1,0 +1,36 @@
+name: giwon-blog-infra
+
+services:
+  db:
+    image: postgres:17
+    container_name: giwon-blog-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: giwon
+      POSTGRES_PASSWORD: giwon1234
+      POSTGRES_DB: giwon_blog
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - blog-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: giwon-blog-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - blog-network
+
+networks:
+  blog-network:
+    external: true
+
+volumes:
+  postgres-data:
+    external: true
+    name: giwon-blog-api_postgres-data
+  redis-data:
+    external: true
+    name: giwon-blog-api_redis-data
