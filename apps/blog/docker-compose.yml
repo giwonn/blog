@@ -17,6 +17,11 @@ services:
       - NODE_ENV=production
       - API_BASE_URL=http://giwon-blog-api-blog:8080
       - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
 
 networks:
   blog-network:
