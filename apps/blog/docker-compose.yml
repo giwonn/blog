@@ -18,7 +18,7 @@ services:
       - API_BASE_URL=http://giwon-blog-api-blog:8080
       - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000"]
       interval: 3s
       timeout: 2s
       retries: 10
