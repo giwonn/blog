@@ -13,7 +13,7 @@ export function Utterances() {
     const scriptEl = document.createElement("script");
     scriptEl.src = "https://utteranc.es/client.js";
     scriptEl.async = true;
-    scriptEl.setAttribute("repo", "giwonn/giwon-blog");
+    scriptEl.setAttribute("repo", "giwonn/blog");
     scriptEl.setAttribute("issue-term", "pathname");
     scriptEl.setAttribute(
       "theme",
