@@ -2,7 +2,7 @@ import { getArticle, getArticleNeighbors } from "@/actions/articles";
 import { MDXContent } from "@/lib/mdx";
 import { TableOfContents } from "@/components/mdx/TableOfContents";
 import { Container } from "@/components/ui/Container";
-import { Utterances } from "@/components/ui/Utterances";
+import { Giscus } from "@/components/ui/Giscus";
 import { ArticleNeighborNav } from "@/features/articles/components/ArticleNeighborNav";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -44,7 +44,7 @@ export async function Article({ slug, seriesSlug, bookSlug }: ArticleDetailProps
         <MDXContent source={article.content} />
         <ArticleNeighborNav neighbors={neighbors} seriesSlug={seriesSlug} bookSlug={bookSlug} />
         <div className="mt-16">
-          <Utterances />
+          <Giscus />
         </div>
       </article>
       <aside className="hidden min-[1380px]:block absolute top-0 bottom-0 left-full min-[1460px]:left-[calc(100%+3rem)] w-64 transition-[left] duration-300 ease-in-out">
