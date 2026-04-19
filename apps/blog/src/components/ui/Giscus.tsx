@@ -15,7 +15,7 @@ export function Giscus() {
     scriptEl.async = true;
     scriptEl.setAttribute("data-repo", "giwonn/blog");
     scriptEl.setAttribute("data-repo-id", "R_kgDOSDAzuQ");
-    scriptEl.setAttribute("data-category", "Announcements");
+    scriptEl.setAttribute("data-category", "Comments");
     scriptEl.setAttribute("data-category-id", "DIC_kwDOSDAzuc4C7Lts");
     scriptEl.setAttribute("data-mapping", "pathname");
     scriptEl.setAttribute("data-strict", "1");
