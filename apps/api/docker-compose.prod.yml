@@ -1,11 +1,18 @@
 name: giwon-blog-api
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 x-api-blog: &api-blog-common
   build:
     context: ../../
     dockerfile: apps/api/Dockerfile.api-blog
   image: api-blog:latest
   restart: unless-stopped
+  logging: *default-logging
   expose:
     - "8080"
   networks:
@@ -33,6 +40,7 @@ x-api-admin: &api-admin-common
     dockerfile: apps/api/Dockerfile.api-admin
   image: api-admin:latest
   restart: unless-stopped
+  logging: *default-logging
   expose:
     - "8081"
   networks:

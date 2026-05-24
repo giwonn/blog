@@ -1,5 +1,11 @@
 name: giwon-blog
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   blog:
     build:
@@ -9,6 +15,7 @@ services:
         - IMAGE_PUBLIC_URL=http://giwon-blog-api-blog:8080/images
     image: blog:latest
     restart: unless-stopped
+    logging: *default-logging
     expose:
       - "3000"
     networks:

@@ -1,7 +1,14 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   postgres:
     image: postgres:17
     container_name: api-next-dev-db
+    logging: *default-logging
     ports:
       - "5433:5432"
     environment:
@@ -19,6 +26,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: api-next-dev-redis
+    logging: *default-logging
     ports:
       - "6380:6379"
     healthcheck:
